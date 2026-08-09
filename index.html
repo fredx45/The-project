@@ -4,292 +4,208 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bank of England Governor</title>
-<meta name="description" content="Set UK Bank Rate across a five-year term. Keep inflation and unemployment inside the Bank of England target bands.">
+<meta name="description" content="Twenty quarters. Two targets. Set UK Bank Rate, survive the shocks, keep your job.">
+<meta name="theme-color" content="#0A0E1A">
 <!--
   To activate advertising, add this to <head>:
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-REPLACE_ME" crossorigin="anonymous"></script>
 -->
 <style>
+  /* Single-theme arcade screen: painted explicitly so it holds on any host. */
   :root{
-    --bg:#0d1117; --panel:#161b22; --panel-2:#1c232c; --line:#2b3440;
-    --ink:#e8edf3; --muted:#93a1b0;
-    --good:#2ea043; --good-dim:rgba(46,160,67,.18);
-    --warn:#d29922; --bad:#f0533f;
-    --infl:#5aa9ff; --unemp:#ffb454;
-    --accent:#c8102e; /* BoE red */
-    --r:14px;
+    --bg:#0A0E1A; --panel:#141B2E; --raised:#1D2739; --line:#2A3549;
+    --ink:#EAF0FA; --muted:#8A97AE;
+    --good:#3DDC97; --warn:#FFC145; --bad:#FF5D5D;
+    --infl:#4CC9F0; --unemp:#FFA45B;
+    --cta:#E0203C;
+    --r:18px;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;padding:0}
+  html,body{margin:0;padding:0;height:100%}
   body{
     background:var(--bg); color:var(--ink);
-    font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    -webkit-text-size-adjust:100%;
-    padding:env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 16px);
+    font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent;
     overflow-x:hidden;
   }
-  .wrap{max-width:520px;margin:0 auto;padding:12px;display:flex;flex-direction:column}
-  header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-  .crest{width:36px;height:36px;border-radius:9px;background:var(--accent);
-    display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff;flex:0 0 auto}
-  h1{font-size:17px;margin:0;line-height:1.15;letter-spacing:-.2px}
-  h1 small{display:block;font-weight:500;font-size:12px;color:var(--muted);letter-spacing:0}
-  .scorebox{margin-left:auto;text-align:right;flex:0 0 auto}
-  .scorebox .n{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
-  .scorebox .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  .app{max-width:480px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;
+    padding:calc(env(safe-area-inset-top) + 10px) 12px 0;gap:10px}
 
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;margin-bottom:10px}
+  /* ---- HUD ---- */
+  .hud{display:flex;align-items:center;gap:10px}
+  .term{flex:1 1 auto;min-width:0}
+  .term .q{font-size:15px;font-weight:800;letter-spacing:-.2px}
+  .term .sub{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .score{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:999px;
+    padding:6px 14px;display:flex;align-items:baseline;gap:4px;flex:0 0 auto}
+  .score b{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
+  .score i{font-style:normal;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .pop{position:absolute;left:50%;top:-2px;transform:translateX(-50%);font-weight:900;font-size:15px;
+    pointer-events:none;animation:rise 1s ease-out forwards}
+  .pop.up{color:var(--good)} .pop.dn{color:var(--bad)}
+  @keyframes rise{to{transform:translate(-50%,-26px);opacity:0}}
+  .icon-btn{flex:0 0 auto;width:40px;height:40px;border-radius:12px;background:var(--panel);
+    border:1px solid var(--line);color:var(--muted);font-size:15px;display:grid;place-items:center;
+    cursor:pointer;padding:0}
+  .icon-btn.confirm{color:var(--bad);border-color:var(--bad)}
 
-  .qbar{font-size:12px;color:var(--muted);margin-bottom:10px}
-  .qrow{display:flex;align-items:center;gap:8px}
-  .qrow #qlabel{flex:1 1 auto;min-width:0}
-  .pips{display:flex;gap:3px;margin-top:6px}
-  .pip{flex:1 1 0;min-width:0;height:5px;border-radius:3px;background:var(--line)}
-  .pip.done{background:var(--good)} .pip.miss{background:var(--bad)} .pip.now{background:var(--muted)}
+  .dots{display:flex;gap:3px}
+  .dot{flex:1 1 0;height:4px;border-radius:2px;background:var(--line)}
+  .dot.hit{background:var(--good)} .dot.miss{background:var(--bad)} .dot.now{background:var(--ink)}
 
-  .gauge+.gauge{margin-top:14px}
-  .gauge .top{display:flex;align-items:baseline;gap:8px;font-size:13px;margin-bottom:6px}
-  .gauge .top .name{font-weight:600}
-  .gauge .top .val{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:800;font-size:16px}
-  .gauge .top .tgt{font-size:11px;color:var(--muted)}
-  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
-  .track{position:relative;height:26px;border-radius:8px;background:var(--panel-2);
-    border:1px solid var(--line);overflow:hidden}
-  .zone{position:absolute;top:0;bottom:0;background:var(--good-dim);
-    border-left:1px solid rgba(46,160,67,.5);border-right:1px solid rgba(46,160,67,.5)}
-  .marker{position:absolute;top:-3px;bottom:-3px;width:3px;border-radius:2px;background:var(--ink);
-    transform:translateX(-1.5px);transition:left .5s cubic-bezier(.3,.7,.3,1)}
-  .marker.out{background:var(--bad);box-shadow:0 0 0 3px rgba(240,83,63,.2)}
-  .ticks{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:3px}
+  /* ---- Stat tiles ---- */
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+    padding:12px 12px 10px;position:relative;overflow:hidden;
+    transition:border-color .3s,background .3s}
+  .tile.out{border-color:var(--bad);background:linear-gradient(180deg,rgba(255,93,93,.14),var(--panel) 60%)}
+  .tile .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.1px;color:var(--muted);
+    display:flex;align-items:center;gap:5px}
+  .swatch{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .big{font-size:38px;font-weight:900;line-height:1;letter-spacing:-1.5px;font-variant-numeric:tabular-nums;
+    margin:6px 0 2px;display:flex;align-items:baseline;gap:2px}
+  .big em{font-style:normal;font-size:17px;font-weight:800;color:var(--muted)}
+  .big .arrow{font-size:15px;margin-left:auto;font-weight:800}
+  .up{color:var(--bad)} .down{color:var(--good)} .flat{color:var(--muted)}
+  .spark{width:100%;height:42px;display:block;margin:4px 0 7px}
+  .strip{position:relative;height:7px;border-radius:4px;background:var(--raised);overflow:hidden}
+  .strip .zone{position:absolute;top:0;bottom:0;background:rgba(61,220,151,.35)}
+  .strip .mk{position:absolute;top:-2px;bottom:-2px;width:3px;border-radius:2px;background:var(--ink);
+    transition:left .45s cubic-bezier(.3,.7,.3,1)}
+  .strip .mk.bad{background:var(--bad)}
+  .tgt{font-size:10px;color:var(--muted);margin-top:5px;letter-spacing:.3px}
 
-  canvas{width:100%;height:190px;display:block;touch-action:manipulation}
-  .legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+  /* ---- Event card ---- */
+  .event{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+    padding:12px;display:flex;gap:11px;align-items:center;min-height:74px}
+  .event .em{font-size:28px;line-height:1;flex:0 0 auto}
+  .event .h{display:block;font-weight:800;font-size:14px;margin-bottom:3px}
+  .event .p{display:block;font-size:12px;color:var(--muted);line-height:1.35}
+  .event.warn{border-color:var(--warn);background:linear-gradient(180deg,rgba(255,193,69,.14),var(--panel) 70%)}
+  .event.warn .h{color:var(--warn)}
+  .event.bad{border-color:var(--bad);background:linear-gradient(180deg,rgba(255,93,93,.18),var(--panel) 70%);
+    animation:pulse .7s ease-out}
+  .event.bad .h{color:var(--bad)}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,93,93,.6)}100%{box-shadow:0 0 0 16px rgba(255,93,93,0)}}
+  @keyframes shake{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(3px)}50%{transform:translateX(-3px)}}
+  .shake{animation:shake .4s ease-in-out}
 
-  .shock{border:1px solid var(--line);background:var(--panel-2);border-radius:var(--r);
-    padding:11px 12px;margin-bottom:10px;font-size:13px;display:flex;gap:9px;align-items:flex-start}
-  .shock .icon{font-size:16px;line-height:1.2}
-  .shock.hot{border-color:rgba(240,83,63,.55);background:rgba(240,83,63,.10)}
-  .shock.hot .t{color:#ff9b8b}
-  .shock.major,.shock.crisis{border-color:var(--bad);background:rgba(240,83,63,.18);
-    animation:flash .6s ease-out}
-  .shock.major .t,.shock.crisis .t{color:#ff7a63}
-  @keyframes flash{0%{box-shadow:0 0 0 0 rgba(240,83,63,.55)}100%{box-shadow:0 0 0 12px rgba(240,83,63,0)}}
-  .shock .t{font-weight:700;display:block;margin-bottom:1px}
-  .shock .s{color:var(--muted)}
+  /* ---- Committee ---- */
+  .vote{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);
+    background:var(--raised);border-radius:12px;padding:8px 10px}
+  .vote .tally{font-weight:900;font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink);
+    background:var(--line);border-radius:7px;padding:3px 8px;flex:0 0 auto}
+  .vote.won .tally{background:rgba(61,220,151,.22);color:var(--good)}
+  .vote.lost{color:var(--warn)}
+  .vote.lost .tally{background:rgba(255,193,69,.22);color:var(--warn)}
 
-  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
-  .chip{flex:1 1 auto;font-size:11px;color:var(--muted);background:var(--panel-2);
-    border:1px solid var(--line);border-radius:8px;padding:5px 8px;white-space:nowrap}
-  .chip b{font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-size:10px}
-  .chip i{font-style:normal;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:700;float:right}
-  .chip.warn{border-color:rgba(210,153,34,.5);background:rgba(210,153,34,.10)}
-  .chip.warn span{color:var(--warn)}
-  .chip.bad{border-color:rgba(240,83,63,.55);background:rgba(240,83,63,.12)}
-  .chip.bad span{color:#ff9b8b}
-  .lbl-short{display:none}
-
-  .mpc{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);
-    background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r);
-    padding:9px 11px;margin-bottom:10px}
-  .mpc .tally{flex:0 0 auto;font-weight:800;font-size:11px;letter-spacing:.5px;color:var(--ink);
-    background:var(--line);border-radius:6px;padding:3px 7px;font-variant-numeric:tabular-nums}
-  .mpc.carried .tally{background:rgba(46,160,67,.25);color:#7ee08f}
-  .mpc.outvoted{border-color:rgba(210,153,34,.55);background:rgba(210,153,34,.10)}
-  .mpc.outvoted .tally{background:rgba(210,153,34,.28);color:#ffd479}
-
-  /* Sticky control dock: the rate + advance controls stay reachable with a
-     thumb for all 20 quarters, so you never scroll to make a decision. */
-  .dock{position:sticky;bottom:0;z-index:5;margin:0 -12px;padding:10px 12px
-    calc(10px + env(safe-area-inset-bottom));
-    background:linear-gradient(180deg,rgba(13,17,23,.75),var(--bg) 22%);
-    border-top:1px solid var(--line);
-    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-  label.slabel{display:flex;align-items:baseline;font-size:13px;margin-bottom:2px}
-  label.slabel .big{margin-left:auto;font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
-  .delta{font-size:12px;color:var(--muted);min-height:18px}
-  .delta.up{color:var(--bad)} .delta.down{color:var(--infl)}
-  .sliderow{display:flex;align-items:center;gap:8px}
-  .step{flex:0 0 auto;width:46px;min-height:46px;border-radius:12px;background:var(--panel-2);
-    border:1px solid var(--line);color:var(--ink);font-size:22px;font-weight:700;line-height:1;
-    display:grid;place-items:center;touch-action:manipulation;-webkit-user-select:none;user-select:none}
-  .step:disabled{opacity:.35}
-  .step:active{background:var(--line)}
-  input[type=range]{flex:1 1 auto;width:100%;height:46px;margin:0;background:transparent;
+  /* ---- Dock ---- */
+  .dock{position:sticky;bottom:0;margin:auto -12px 0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    background:var(--bg);z-index:5}
+  .dock::before{content:"";position:absolute;left:0;right:0;top:-20px;height:20px;
+    background:linear-gradient(180deg,rgba(10,14,26,0),var(--bg));pointer-events:none}
+  .rateline{display:flex;align-items:baseline;margin-bottom:4px}
+  .rateline .l{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.1px;color:var(--muted)}
+  .rateline .v{margin-left:auto;font-size:30px;font-weight:900;line-height:1;letter-spacing:-1px;
+    font-variant-numeric:tabular-nums}
+  .row{display:flex;align-items:center;gap:9px}
+  .step{flex:0 0 auto;width:52px;height:52px;border-radius:16px;background:var(--raised);
+    border:1px solid var(--line);color:var(--ink);font-size:26px;font-weight:800;line-height:1;
+    display:grid;place-items:center;cursor:pointer;padding:0;touch-action:manipulation;
+    -webkit-user-select:none;user-select:none}
+  .step:disabled{opacity:.3}
+  .step:active{transform:scale(.94)}
+  input[type=range]{flex:1 1 auto;min-width:0;height:52px;margin:0;background:transparent;
     -webkit-appearance:none;appearance:none;touch-action:pan-y}
-  input[type=range]:focus{outline:none}
-  input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:6px;
+  input[type=range]:focus-visible{outline:2px solid var(--infl);outline-offset:4px;border-radius:8px}
+  input[type=range]::-webkit-slider-runnable-track{height:10px;border-radius:6px;
     background:linear-gradient(90deg,var(--infl),var(--warn),var(--bad))}
-  input[type=range]::-moz-range-track{height:8px;border-radius:6px;
+  input[type=range]::-moz-range-track{height:10px;border-radius:6px;
     background:linear-gradient(90deg,var(--infl),var(--warn),var(--bad))}
-  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;
-    background:#fff;border:3px solid var(--accent);margin-top:-11px;cursor:pointer}
-  input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;
-    background:#fff;border:3px solid var(--accent);cursor:pointer}
-  .rticks{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;height:32px;border-radius:50%;
+    background:#fff;border:4px solid var(--cta);margin-top:-11px;cursor:pointer;
+    box-shadow:0 2px 10px rgba(0,0,0,.5)}
+  input[type=range]::-moz-range-thumb{width:28px;height:28px;border-radius:50%;
+    background:#fff;border:4px solid var(--cta);cursor:pointer}
+  .hint{font-size:11px;color:var(--muted);min-height:16px;margin:3px 2px 7px}
+  .go{width:100%;min-height:56px;border:0;border-radius:16px;background:var(--cta);color:#fff;
+    font:inherit;font-size:17px;font-weight:900;letter-spacing:.2px;cursor:pointer;
+    touch-action:manipulation;box-shadow:0 6px 0 #8E0F24}
+  .go:active{transform:translateY(3px);box-shadow:0 3px 0 #8E0F24}
 
-  button{font:inherit;border-radius:11px;border:1px solid transparent;min-height:48px;
-    width:100%;cursor:pointer;font-weight:700;touch-action:manipulation}
-  .btn-primary{background:var(--accent);color:#fff;font-size:17px;min-height:52px}
-  .btn-primary:active{filter:brightness(.9)}
-  .btn-ghost{background:transparent;color:var(--muted);border-color:var(--line);min-height:42px;
-    font-size:14px;font-weight:600;margin-top:8px}
-  /* Restart lives in the header, away from the button being tapped 20 times. */
-  .btn-restart{width:auto;min-height:34px;padding:0 12px;font-size:12px;font-weight:600;
-    background:transparent;color:var(--muted);border-color:var(--line);border-radius:9px;
-    margin-left:8px;flex:0 0 auto}
-  .btn-restart.confirm{color:#ff9b8b;border-color:rgba(240,83,63,.55)}
+  /* ---- Ads ---- */
+  .ad-slot{min-height:64px;border:1px dashed var(--line);border-radius:14px;display:grid;place-items:center;
+    color:#4C5875;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;padding:8px}
 
-  .ad-slot{min-height:104px;border:1px dashed var(--line);border-radius:var(--r);
-    display:grid;place-items:center;text-align:center;color:#5c6b7a;font-size:11px;
-    letter-spacing:1.4px;text-transform:uppercase;margin-bottom:10px;padding:10px;
-    background:repeating-linear-gradient(45deg,transparent,transparent 9px,rgba(255,255,255,.015) 9px,rgba(255,255,255,.015) 18px)}
-
-  .end h2{margin:2px 0 2px;font-size:20px}
-  .end .verdict{font-size:13px;color:var(--muted);margin-bottom:10px}
-  .rows{font-size:13px}
-  .row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)}
-  .row:last-child{border-bottom:0;font-weight:800;font-size:15px;padding-top:9px}
-  .row .v{font-variant-numeric:tabular-nums}
+  /* ---- Results ---- */
+  .sheet{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+  .sheet .medal{font-size:40px;line-height:1}
+  .sheet h2{margin:6px 0 4px;font-size:21px;letter-spacing:-.4px}
+  .sheet .say{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.45}
+  .ln{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:7px 0;
+    border-bottom:1px solid var(--line)}
+  .ln .v{font-variant-numeric:tabular-nums;font-weight:700;flex:0 0 auto}
+  .ln.total{border-bottom:0;font-size:16px;font-weight:900;padding-top:10px}
   .pos{color:var(--good)} .neg{color:var(--bad)}
+  #game.screen{flex:1 1 auto;display:flex;flex-direction:column}
   .hide{display:none !important}
-  footer{font-size:11px;color:#5c6b7a;text-align:center;margin-top:6px;line-height:1.5}
-  @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+  footer{font-size:10px;color:#4C5875;text-align:center;padding:10px 0 14px;line-height:1.5}
+  @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
 
-  /* Short phones: tighten everything so the gauges, chart and dock all fit
-     without scrolling between decisions. */
-  @media (max-height:720px){
-    canvas{height:150px}
-    .ad-slot{min-height:76px}
-    .card{padding:10px;margin-bottom:8px}
-    header{margin-bottom:8px}
-    .shock{padding:9px 11px;margin-bottom:8px}
+  @media (max-height:680px){
+    .big{font-size:32px} .spark{height:30px} .event{min-height:64px;padding:10px}
+    .ad-slot{min-height:52px} .app{gap:8px}
   }
-  @media (max-height:600px){
-    canvas{height:120px}
-    .ad-slot{min-height:60px}
-    h1{font-size:15px} h1 small{display:none}
-    .crest{width:30px;height:30px}
-    .gauge+.gauge{margin-top:10px}
-    .track{height:22px}
-    /* Not enough vertical room for the banner above the fold as well as the
-       gauges and the shock headline: move it below the game instead. */
-    #ad-top{order:5} footer{order:6}
-    /* Chips collapse to label + number so all three sit on one row, keeping
-       the vote result and the shock headline above the dock. */
-    .lbl-long{display:none} .lbl-short{display:inline}
-    .chip{padding:4px 7px;text-align:left}
-    .chip > span{display:none}
-    .mpc{padding:7px 9px;margin-bottom:8px}
-  }
-  /* Very narrow phones */
   @media (max-width:340px){
-    .gauge .top .tgt{display:none}
-    .legend{gap:10px}
-    .step{width:42px}
+    .big{font-size:30px} .step{width:46px;height:46px}
   }
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="app">
 
-  <header>
-    <div class="crest">£</div>
-    <h1>Bank of England Governor<small>Threadneedle Street · Aug 2026</small></h1>
-    <div class="scorebox"><div class="n" id="score" aria-live="polite">0</div><div class="l">Score</div></div>
-  </header>
-
-  <!-- ===== AD SLOT (top banner) ===== -->
-  <div class="ad-slot" id="ad-top">
-    Advertisement
-    <!--
-    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-REPLACE_ME"
-         data-ad-slot="REPLACE_ME" data-ad-format="auto" data-full-width-responsive="true"></ins>
-    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-    -->
+  <div class="hud">
+    <div class="term">
+      <div class="q" id="qName">Q3 2026</div>
+      <div class="sub" id="qNum">Quarter 1 of 20</div>
+    </div>
+    <div class="score"><b id="score">0</b><i>pts</i></div>
+    <button class="icon-btn" id="restart" title="Restart" aria-label="Restart">↻</button>
   </div>
 
-  <div id="game">
-    <div class="card">
-      <div class="qbar">
-        <div class="qrow">
-          <span id="qlabel">Quarter 1 of 20 · Q3 2026</span>
-          <button class="btn-restart" id="restart1">Restart</button>
-        </div>
-        <div class="pips" id="pips" aria-hidden="true"></div>
-      </div>
+  <div class="dots" id="dots" aria-hidden="true"></div>
 
-      <div class="gauge">
-        <div class="top">
-          <span class="dot" style="background:var(--infl)"></span>
-          <span class="name">CPI Inflation</span>
-          <span class="tgt">target 2% ±1</span>
-          <span class="val" id="inflVal">2.6%</span>
-        </div>
-        <div class="track"><div class="zone" id="inflZone"></div><div class="marker" id="inflMark"></div></div>
-        <div class="ticks"><span>0%</span><span>2%</span><span>4%</span><span>6%</span></div>
+  <div id="game" class="screen">
+    <div class="tiles" style="margin-bottom:10px">
+      <div class="tile" id="tileI">
+        <div class="lbl"><span class="swatch" style="background:var(--infl)"></span> Inflation</div>
+        <div class="big"><span id="iVal">2.6</span><em>%</em><span class="arrow flat" id="iArr">→</span></div>
+        <canvas class="spark" id="sparkI"></canvas>
+        <div class="strip"><span class="zone" id="iZone"></span><span class="mk" id="iMk"></span></div>
+        <div class="tgt">Target 1–3%</div>
       </div>
-
-      <div class="gauge">
-        <div class="top">
-          <span class="dot" style="background:var(--unemp)"></span>
-          <span class="name">Unemployment</span>
-          <span class="tgt">goal 4% ±1</span>
-          <span class="val" id="unVal">4.9%</span>
-        </div>
-        <div class="track"><div class="zone" id="unZone"></div><div class="marker" id="unMark"></div></div>
-        <div class="ticks"><span>2%</span><span>4%</span><span>6%</span><span>8%</span></div>
-      </div>
-
-      <div class="chips">
-        <span class="chip" id="expChip" title="Where the public expects inflation to settle">
-          <b><span class="lbl-long">Expectations</span><span class="lbl-short">Exp</span></b> <span id="expState">anchored</span> <i id="expVal">2.3%</i></span>
-        <span class="chip" id="gbpChip" title="Sterling versus the global policy rate">
-          <b><span class="lbl-long">Sterling</span><span class="lbl-short">GBP</span></b> <span id="gbpState">steady</span> <i id="gbpVal">$1.30</i></span>
-        <span class="chip" id="globalChip" title="Average policy rate of the Fed and ECB">
-          <b><span class="lbl-long">Global rate</span><span class="lbl-short">World</span></b> <span id="globalState">in line</span> <i id="globalVal">3.25%</i></span>
+      <div class="tile" id="tileU">
+        <div class="lbl"><span class="swatch" style="background:var(--unemp)"></span> Jobless</div>
+        <div class="big"><span id="uVal">4.9</span><em>%</em><span class="arrow flat" id="uArr">→</span></div>
+        <canvas class="spark" id="sparkU"></canvas>
+        <div class="strip"><span class="zone" id="uZone"></span><span class="mk" id="uMk"></span></div>
+        <div class="tgt">Goal 3–5%</div>
       </div>
     </div>
 
-    <div class="mpc" id="mpc" aria-live="polite">
-      <span class="tally" id="mpcTally">MPC</span>
-      <span id="mpcText">Nine members. Propose a rate and they will vote on it.</span>
+    <div class="event" id="event" aria-live="polite" style="margin-bottom:10px">
+      <span class="em" id="evEmoji">🏦</span>
+      <span><span class="h" id="evTitle">Your first meeting</span>
+      <span class="p" id="evText">Inflation is 2.6% and drifting. Set Bank Rate and put it to the vote.</span></span>
     </div>
 
-    <div class="shock" id="shock" aria-live="polite">
-      <span class="icon" id="shockIcon">📊</span>
-      <span><span class="t" id="shockTitle">Markets calm</span>
-      <span class="s" id="shockText">Brent steady. The MPC awaits your decision.</span></span>
+    <div class="vote" id="vote" aria-live="polite" style="margin-bottom:10px">
+      <span class="tally" id="voteTally">MPC</span>
+      <span id="voteText">Eight other members vote on whatever you propose.</span>
     </div>
 
-    <div class="card">
-      <canvas id="chart" aria-label="Chart tracking inflation and unemployment by quarter"></canvas>
-      <div class="legend">
-        <span><span class="dot" style="background:var(--infl)"></span> Inflation</span>
-        <span><span class="dot" style="background:var(--unemp)"></span> Unemployment</span>
-        <span><span class="dot" style="background:#7b8794"></span> Bank Rate</span>
-        <span style="opacity:.8">Green = target band</span>
-      </div>
-    </div>
-
-    <div class="dock">
-      <label class="slabel" for="rate">Bank Rate <span class="big" id="rateVal">3.75%</span></label>
-      <div class="sliderow">
-        <button class="step" id="down" type="button" aria-label="Cut rate by 0.25 points">−</button>
-        <input type="range" id="rate" min="0" max="5" step="0.25" value="3.75"
-               aria-describedby="delta">
-        <button class="step" id="up" type="button" aria-label="Raise rate by 0.25 points">+</button>
-      </div>
-      <div class="delta" id="delta" aria-live="polite">Hold at 3.75%</div>
-      <button class="btn-primary" id="next">Propose to the MPC →</button>
-    </div>
-  </div>
-
-  <div id="end" class="card end hide">
-    <h2 id="rating">—</h2>
-    <div class="verdict" id="verdict"></div>
-    <div class="rows" id="breakdown"></div>
-    <!-- ===== AD SLOT (results) ===== -->
-    <div class="ad-slot" style="margin:12px 0 4px">
+    <!-- ===== AD SLOT (banner) ===== -->
+    <div class="ad-slot" id="adTop">
       Advertisement
       <!--
       <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-REPLACE_ME"
@@ -297,10 +213,39 @@
       <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
       -->
     </div>
-    <button class="btn-primary" id="restart2">Play Again</button>
+
+    <div class="dock">
+      <div class="rateline"><span class="l">Bank Rate</span><span class="v" id="rateVal">3.75%</span></div>
+      <div class="row">
+        <button class="step" id="down" aria-label="Cut by 0.25">−</button>
+        <input type="range" id="rate" min="0" max="5" step="0.25" value="3.75" aria-label="Bank Rate">
+        <button class="step" id="up" aria-label="Raise by 0.25">+</button>
+      </div>
+      <div class="hint" id="hint">Holding at 3.75%</div>
+      <button class="go" id="go">PUT IT TO THE VOTE</button>
+    </div>
   </div>
 
-  <footer>Simplified model for entertainment. Not economic advice, and definitely not the MPC.</footer>
+  <div id="end" class="hide">
+    <div class="sheet">
+      <div class="medal" id="medal">🎖️</div>
+      <h2 id="rating">—</h2>
+      <div class="say" id="say"></div>
+      <div id="lines"></div>
+      <!-- ===== AD SLOT (results) ===== -->
+      <div class="ad-slot" style="margin:14px 0 12px">
+        Advertisement
+        <!--
+        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-REPLACE_ME"
+             data-ad-slot="REPLACE_ME" data-ad-format="auto" data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+        -->
+      </div>
+      <button class="go" id="again">PLAY AGAIN</button>
+    </div>
+  </div>
+
+  <footer>A simplified model, for entertainment. Not economic advice, and not the MPC.</footer>
 </div>
 
 <script>
@@ -309,37 +254,44 @@
 
   // ---------- Calibration (August 2026) ----------
   var START = { rate:3.75, inflation:2.6, unemployment:4.9 };
-  var NEUTRAL = 3.0;                     // neutral rate at the start; it tracks the global rate
-  var NEUTRAL_LEAD = -0.25;              // UK neutral sits this far below the global average
-  var INFL_BAND = { lo:1.0, hi:3.0 };    // 2% +/- 1
-  var UNEMP_BAND = { lo:3.0, hi:5.0 };   // 4% +/- 1
+  var INFL_BAND = { lo:1.0, hi:3.0 };     // 2% +/- 1
+  var UNEMP_BAND = { lo:3.0, hi:5.0 };    // 4% +/- 1
   var QUARTERS = 20;
-  var CRISIS = 3.5;
-  var START_EXP = 2.3;      // where the public expects inflation to settle
-  var GLOBAL_RATE = 3.25;   // Fed/ECB average at the start; it drifts through the term
-  var MPC_BIAS = [-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75];  // eight members either side of you
+  var CRISIS_CPI = 3.5;
+  var START_EXP = 2.3;
+  var GLOBAL_RATE = 3.25;                 // hidden: world policy rate at the start
+  var NEUTRAL_LEAD = -0.25;               // hidden: UK neutral sits below the world rate
+  var MPC_BIAS = [-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75];
+  var MAX_QUARTER_PENALTY = 6;            // a crisis quarter hurts, but never ends the game outright
+
   var QNAMES = (function(){
     var out=[], y=2026, q=3;
     for (var i=0;i<QUARTERS;i++){ out.push("Q"+q+" "+y); if(++q>4){q=1;y++;} }
     return out;
   })();
 
-  // Minor shocks: +0.30pp, short echo. Major shocks: +0.80pp, longer echo.
-  var SHOCKS = [
-    ["🛢️","OPEC+ supply disruption!","Output quotas slashed overnight — Brent jumps $14."],
-    ["🔥","Gulf refinery outage","Diesel cracks blow out. Forecourt prices to pass through within weeks."],
-    ["🚢","Red Sea convoys rerouted","Freight rates surge; imported goods inflation picks up."],
-    ["⚡","Interconnector curtailed","European gas competition bids up UK winter contracts."]
+  // Three tiers. The top tier is a 2022-scale energy crisis: enough on its own
+  // to put CPI into double digits and keep it there for over a year.
+  var MINOR = [
+    ["🛢️","OPEC+ trims output","Brent up $9. Forecourt prices will follow within weeks."],
+    ["🚢","Red Sea reroutes","Freight rates climb; imported goods inflation ticks up."],
+    ["⚡","Interconnector curtailed","European demand bids up UK winter gas contracts."],
+    ["🌡️","Cold snap","Heating demand spikes and the gas storage buffer thins."]
   ];
-  var MAJOR_SHOCKS = [
-    ["⚓","Strait of Hormuz closed!","A fifth of seaborne crude halted. Brent through $140 — this will not wash out quickly."],
-    ["💥","Major Gulf field struck","Several mb/d offline indefinitely. Wholesale gas doubles; pass-through is already underway."],
-    ["🛑","Regional war premium","Shipping abandons the Gulf. Energy, freight and insurance all repricing at once."]
+  var MAJOR = [
+    ["🔥","Gulf refinery ablaze","Diesel cracks blow out. Pass-through is already underway."],
+    ["⚓","Hormuz transits suspended","Tanker insurance triples. Wholesale gas follows crude up hard."],
+    ["💷","Energy price cap raised","Ofgem passes wholesale costs to 28 million households."]
+  ];
+  var CRISIS = [
+    ["💥","WAR IN THE GULF","Brent above $200. Wholesale gas has quadrupled — this is a 1974-scale energy shock and it will not clear for years."],
+    ["☢️","Major exporter embargoed","A quarter of global supply is off the market overnight. Every forecast is being torn up."],
+    ["🛑","Pipeline network severed","Europe scrambles for cargoes at any price. The cap will have to rise again, and again."]
   ];
   var CALM = [
-    ["📊","Markets calm","Brent steady. The MPC awaits your decision."],
-    ["🗞️","No fresh energy shock","Gilt markets quiet. Sterling little changed."],
-    ["🏦","Orderly quarter","Wage settlements broadly in line with the staff forecast."]
+    ["📊","Quiet quarter","Brent steady. Gilt markets calm and sterling little changed."],
+    ["🗞️","No fresh shock","Wage settlements broadly in line with the staff forecast."],
+    ["🏦","Orderly meeting","Nothing new on the desk. The Committee awaits your proposal."]
   ];
 
   // ---------- State ----------
@@ -347,28 +299,18 @@
   function reset(){
     S = {
       q:0,
-      rate:START.rate,          // rate the player has set for the coming quarter
-      lagged:START.rate,        // rate that acts on the economy this quarter (one-quarter lag)
-      infl:START.inflation,
-      unemp:START.unemployment,
-      exp:START_EXP,            // inflation expectations
-      gbp:1.30,                 // sterling, driven by the gap to the global rate
-      global:GLOBAL_RATE,       // global policy rate, wanders on its own cycle
-      globalDrift:0,
-      // Each term gets its own global cycle: easing, tightening or choppy.
+      rate:START.rate, lagged:START.rate,
+      infl:START.inflation, unemp:START.unemployment,
+      prevInfl:START.inflation, prevUnemp:START.unemployment,
+      exp:START_EXP,
+      global:GLOBAL_RATE, globalDrift:0,
       globalBias:[-0.075,-0.04,0,0.04,0.075][(Math.random()*5)|0],
-      outvotes:0,
-      score:0,
-      crisisFired:false,
-      crisisPenalty:0,
-      bandPoints:0,
-      missPoints:0,
-      shockCarry:0,
-      shocksHit:0,
-      majorHits:0,
-      hist:[{q:0,infl:START.inflation,unemp:START.unemployment,rate:START.rate}],
-      pips:[],
-      over:false
+      score:0, bandPoints:0, missPoints:0, fightPoints:0, streak:0, bestStreak:0,
+      crisisFired:false, crisisPenalty:0,
+      shocksHit:0, majorHits:0, crisisHits:0,
+      shockCarry:0, outvotes:0, peakInfl:START.inflation,
+      hist:[{i:START.inflation,u:START.unemployment}],
+      dots:[], over:false
     };
   }
 
@@ -379,257 +321,200 @@
   function outBy(v,b){ return v<b.lo ? b.lo-v : (v>b.hi ? v-b.hi : 0); }
   function pct(v){ return v.toFixed(2).replace(/\.?0+$/,'') + "%"; }
   function f1(v){ return v.toFixed(1)+"%"; }
-  // The UK neutral rate is not fixed: it moves with world real rates, so the
-  // Bank Rate that was right last year is not the one that is right now.
   function neutralRate(){ return clamp(S.global + NEUTRAL_LEAD, 0.75, 4.5); }
 
   // ---------- The Committee ----------
-  // You are one vote of nine. Each member reads the same data through a
-  // Taylor-style rule plus a standing hawkish or dovish bias, and backs your
-  // proposal only if it lands near their own preference. Lose the vote and the
-  // rate that bites is the committee median, not yours.
+  // Hidden from the player, the committee prices off the true neutral rate, so
+  // losing votes is the tell that your rate has drifted away from it.
   function mpcVote(proposal){
-    var votes = [proposal], forV = 1;             // the Governor votes for their own motion
+    var votes = [proposal], forV = 1;
     for (var i=0;i<MPC_BIAS.length;i++){
       var pref = clamp(neutralRate() + 1.3*(S.infl - 2.0) - 0.7*(S.unemp - 4.4) + MPC_BIAS[i], 0, 5);
       pref = Math.round(pref*4)/4;
       if (Math.abs(pref - proposal) <= 0.5){ forV++; votes.push(proposal); }
       else votes.push(pref);
     }
-    var carried = forV >= 5;
-    if (carried) return { rate:proposal, forV:forV, against:9-forV, carried:true };
+    if (forV >= 5) return { rate:proposal, forV:forV, against:9-forV, carried:true };
     votes.sort(function(a,b){ return a-b; });
     return { rate:votes[4], forV:forV, against:9-forV, carried:false };
   }
 
   // ---------- Economy ----------
   function step(decided){
-    var gap = S.lagged - neutralRate();           // policy stance, still one quarter behind
-    // The rest of the world moves first: global rates wander, dragging the UK
-    // neutral rate with them, so a Bank Rate left alone slowly becomes wrong.
+    var gap = S.lagged - neutralRate();
+    S.prevInfl = S.infl; S.prevUnemp = S.unemp;
+
+    // World rates wander, dragging the UK neutral rate with them (hidden).
     S.globalDrift = clamp(S.globalDrift*0.72 + S.globalBias + (Math.random()-0.5)*0.26, -0.35, 0.35);
     S.global = clamp(S.global + S.globalDrift, 1.5, 4.75);
 
-    var shock = 0, ev, major = false;
-    if (Math.random() < 0.22) {
-      S.shocksHit++;
-      major = Math.random() < 0.30;               // roughly a third of shocks are severe
-      if (major) {
-        ev = MAJOR_SHOCKS[(Math.random()*MAJOR_SHOCKS.length)|0];
-        shock = 0.65; S.majorHits++;
-      } else {
-        ev = SHOCKS[(Math.random()*SHOCKS.length)|0];
-        shock = 0.30;
-      }
-    } else {
-      ev = CALM[(Math.random()*CALM.length)|0];
-    }
-    var totalShock = shock + S.shockCarry;
+    var roll = Math.random(), shock = 0, ev, tier = 0;
+    if (roll < 0.022)      { tier = 3; ev = CRISIS[(Math.random()*CRISIS.length)|0]; shock = 3.60; S.crisisHits++; }
+    else if (roll < 0.090) { tier = 2; ev = MAJOR[(Math.random()*MAJOR.length)|0];  shock = 0.75; S.majorHits++; }
+    else if (roll < 0.230) { tier = 1; ev = MINOR[(Math.random()*MINOR.length)|0];  shock = 0.32; }
+    else                   { ev = CALM[(Math.random()*CALM.length)|0]; }
+    if (tier) S.shocksHit++;
+
+    var carry = S.shockCarry;
     var noise = (Math.random()-0.5)*0.10;
 
-    // Sterling channel: hold rates well below the global average and the pound
-    // slides, importing inflation. Hold above it and imports get cheaper.
-    var rateGap = S.lagged - S.global;
-    var importPush = clamp(-0.22 * rateGap, -0.5, 0.5);
-    S.gbp = clamp(1.30 + 0.06 * rateGap, 1.05, 1.55);
+    // Hidden sterling channel: sit away from world rates and imported prices move.
+    var importPush = clamp(-0.22 * (S.lagged - S.global), -0.5, 0.5);
 
-    // Inflation reverts toward what people EXPECT, not toward the 2% target.
-    S.infl  = clamp(S.infl  + (-0.50*gap) - 0.20*(S.infl - S.exp) + totalShock + importPush + noise, -1, 12);
-    S.unemp = clamp(S.unemp + ( 0.17*gap) - 0.12*(S.unemp - 4.4) + 0.10*S.shockCarry, 2.5, 12);
+    S.infl  = clamp(S.infl  + (-0.50*gap) - 0.26*(S.infl - S.exp) + shock + carry + importPush + noise, -1, 15);
+    S.unemp = clamp(S.unemp + ( 0.17*gap) - 0.12*(S.unemp - 4.4) + 0.16*carry, 2.5, 12);
+    if (S.infl > S.peakInfl) S.peakInfl = S.infl;
 
-    // Expectations drift toward realised inflation, and re-anchor toward 2%
-    // only while you keep inflation inside the band. Let them slip and every
-    // subsequent quarter of disinflation costs more.
     S.exp += 0.10*(S.infl - S.exp);
     if (inBand(S.infl, INFL_BAND)) S.exp += 0.20*(2.0 - S.exp);
-    S.exp = clamp(S.exp, 0.5, 8);
+    S.exp = clamp(S.exp, 0.5, 9);
 
-    // Major shocks leave a bigger tail that decays over two or three quarters.
-    S.shockCarry = shock > 0 ? (major ? 0.26 : 0.10) : S.shockCarry * 0.40;
-    if (S.shockCarry < 0.02) S.shockCarry = 0;
-    S.lagged = decided;   // this quarter's decision bites next quarter
+    // A crisis leaves a tail measured in years, not quarters.
+    S.shockCarry = tier === 3 ? 1.55 : (tier === 2 ? 0.22 : (tier === 1 ? 0.10 : carry * 0.72));
+    if (S.shockCarry < 0.03) S.shockCarry = 0;
+
+    S.lagged = decided;
     S.q++;
 
-    // scoring
+    var before = S.score;
     var ok = inBand(S.infl, INFL_BAND) && inBand(S.unemp, UNEMP_BAND);
-    if (ok) { S.bandPoints += 2; S.score += 2; }
-    var miss = (outBy(S.infl, INFL_BAND) + outBy(S.unemp, UNEMP_BAND)) * 10; // per 0.1pp
+    if (ok) {
+      // Streak: sustained control is worth more than a lucky quarter.
+      S.streak++;
+      var pts = 2 + (S.streak > 2 ? Math.min(S.streak - 2, 3) : 0);
+      S.bandPoints += pts; S.score += pts;
+      if (S.streak > S.bestStreak) S.bestStreak = S.streak;
+    } else S.streak = 0;
+    var miss = Math.min((outBy(S.infl, INFL_BAND) + outBy(S.unemp, UNEMP_BAND)) * 10, MAX_QUARTER_PENALTY);
     if (miss > 0) { S.missPoints += miss; S.score -= miss; }
-    if (!S.crisisFired && S.infl >= CRISIS) {
-      S.crisisFired = true; S.crisisPenalty = 8; S.score -= 8;
-    }
-    S.pips.push(ok ? "done" : "miss");
-    S.hist.push({q:S.q, infl:S.infl, unemp:S.unemp, rate:S.lagged});
-    return ev;
+    // Credit for visibly winning the fight: inflation above the band but falling.
+    if (S.infl > INFL_BAND.hi && S.infl < S.prevInfl - 0.15) { S.fightPoints += 3; S.score += 3; }
+    if (!S.crisisFired && S.infl >= CRISIS_CPI) { S.crisisFired = true; S.crisisPenalty = 8; S.score -= 8; }
+
+    S.dots.push(ok ? "hit" : "miss");
+    S.hist.push({i:S.infl, u:S.unemp});
+    return { ev:ev, tier:tier, delta:Math.round(S.score - before) };
   }
 
-  // ---------- Rendering ----------
-  function setShock(ev, crisis, major){
-    $("shockIcon").textContent = crisis ? "🚨" : ev[0];
-    $("shockTitle").textContent = crisis ? "Credibility crisis!" : ev[1];
-    $("shockText").textContent = crisis
-      ? "Inflation above 3.5% — the Governor must write to the Chancellor. −8 points."
-      : ev[2];
-    $("shock").className = "shock" + (crisis ? " hot crisis" : (SHOCKS.indexOf(ev) > -1 ? " hot" : (MAJOR_SHOCKS.indexOf(ev) > -1 ? " hot major" : "")));
+  // ---------- Sparklines ----------
+  function spark(id, key, colour, lo, hi, band){
+    var cv = $(id), ctx = cv.getContext("2d");
+    var dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (!w) return;
+    cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+    var Y = function(v){ return h - ((clamp(v,lo,hi)-lo)/(hi-lo))*h; };
+    var X = function(i){ return (i/(QUARTERS)) * w; };
+
+    ctx.strokeStyle = "rgba(138,151,174,.22)";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, Y(band.hi)+0.5); ctx.lineTo(w, Y(band.hi)+0.5); ctx.stroke();
+
+    ctx.beginPath();
+    S.hist.forEach(function(p,i){ var x=X(i), y=Y(p[key]); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+    ctx.strokeStyle = colour; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.lineCap = "round";
+    ctx.stroke();
+
+    var last = S.hist[S.hist.length-1];
+    ctx.beginPath(); ctx.arc(X(S.hist.length-1), Y(last[key]), 3, 0, Math.PI*2);
+    ctx.fillStyle = colour; ctx.fill();
   }
 
-  function gauge(markId, zoneId, valId, value, band, min, max){
-    var span = max - min;
-    var left = clamp((value - min)/span, 0, 1)*100;
-    var zl = clamp((band.lo - min)/span,0,1)*100;
-    var zr = clamp((band.hi - min)/span,0,1)*100;
-    var z = $(zoneId); z.style.left = zl+"%"; z.style.width = (zr-zl)+"%";
-    var m = $(markId); m.style.left = left+"%";
-    m.className = "marker" + (inBand(value, band) ? "" : " out");
-    var v = $(valId); v.textContent = f1(value);
-    v.style.color = inBand(value, band) ? "var(--ink)" : "var(--bad)";
+  // ---------- Render ----------
+  function arrow(el, now, before){
+    var d = now - before, e = $(el);
+    e.textContent = Math.abs(d) < 0.05 ? "→" : (d > 0 ? "↑" : "↓");
+    e.className = "arrow " + (Math.abs(d) < 0.05 ? "flat" : (d > 0 ? "up" : "down"));
   }
-
-  function renderPips(){
-    var h = "";
-    for (var i=0;i<QUARTERS;i++){
-      var c = S.pips[i] ? S.pips[i] : (i === S.q ? "now" : "");
-      h += '<span class="pip '+c+'"></span>';
-    }
-    $("pips").innerHTML = h;
+  function strip(zoneId, mkId, v, band, lo, hi){
+    var span = hi-lo;
+    $(zoneId).style.left  = clamp((band.lo-lo)/span,0,1)*100 + "%";
+    $(zoneId).style.width = (clamp((band.hi-lo)/span,0,1) - clamp((band.lo-lo)/span,0,1))*100 + "%";
+    var mk = $(mkId);
+    mk.style.left = clamp((v-lo)/span,0,1)*100 + "%";
+    mk.className = "mk" + (inBand(v,band) ? "" : " bad");
   }
-
   function render(){
     $("score").textContent = Math.round(S.score);
-    $("score").style.color = S.score < 0 ? "var(--bad)" : "var(--ink)";
-    $("qlabel").textContent = S.over
-      ? "Term complete · " + QUARTERS + " quarters"
-      : "Quarter " + (S.q+1) + " of " + QUARTERS + " · " + QNAMES[S.q];
-    gauge("inflMark","inflZone","inflVal", S.infl, INFL_BAND, 0, 6);
-    gauge("unMark","unZone","unVal", S.unemp, UNEMP_BAND, 2, 8);
+    $("qName").textContent = S.over ? "Term complete" : QNAMES[S.q];
+    $("qNum").textContent = S.over ? QUARTERS + " quarters served" : "Quarter " + (S.q+1) + " of " + QUARTERS;
 
-    var drift = Math.abs(S.exp - 2.0);
-    $("expChip").className = "chip" + (drift > 1.0 ? " bad" : (drift > 0.45 ? " warn" : ""));
-    $("expState").textContent = drift > 1.0 ? "de-anchored" : (drift > 0.45 ? "slipping" : "anchored");
-    $("expVal").textContent = f1(S.exp);
+    $("iVal").textContent = S.infl.toFixed(1);
+    $("uVal").textContent = S.unemp.toFixed(1);
+    arrow("iArr", S.infl, S.prevInfl);
+    arrow("uArr", S.unemp, S.prevUnemp);
+    $("tileI").className = "tile" + (inBand(S.infl, INFL_BAND) ? "" : " out");
+    $("tileU").className = "tile" + (inBand(S.unemp, UNEMP_BAND) ? "" : " out");
+    strip("iZone","iMk", S.infl, INFL_BAND, 0, 14);
+    strip("uZone","uMk", S.unemp, UNEMP_BAND, 2, 10);
+    spark("sparkI","i","#4CC9F0",0,14,INFL_BAND);
+    spark("sparkU","u","#FFA45B",2,10,UNEMP_BAND);
 
-    var slide = 1.30 - S.gbp;
-    $("gbpChip").className = "chip" + (slide > 0.045 ? " bad" : (slide > 0.02 ? " warn" : ""));
-    $("gbpState").textContent = slide > 0.045 ? "sliding" : (slide > 0.02 ? "soft" : (slide < -0.02 ? "firm" : "steady"));
-    $("gbpVal").textContent = "$" + S.gbp.toFixed(2);
+    var h = "";
+    for (var i=0;i<QUARTERS;i++) h += '<span class="dot '+(S.dots[i] || (i===S.q?"now":""))+'"></span>';
+    $("dots").innerHTML = h;
 
-    var lead = S.rate - S.global;
-    $("globalChip").className = "chip" + (Math.abs(lead) > 1.0 ? " warn" : "");
-    $("globalState").textContent = Math.abs(lead) <= 0.3 ? "in line"
-      : (lead > 0 ? "you are " + Math.abs(lead).toFixed(2) + " above" : "you are " + Math.abs(lead).toFixed(2) + " below");
-    $("globalVal").textContent = f1(S.global);
-    renderPips();
-    $("next").textContent = (S.q === QUARTERS-1) ? "Final Vote → Results" : "Propose to the MPC →";
-    drawChart();
+    $("go").textContent = (S.q === QUARTERS-1) ? "FINAL VOTE" : "PUT IT TO THE VOTE";
   }
-
-  function updateRateUI(){
+  function updateRate(){
     $("rateVal").textContent = pct(S.rate);
     $("down").disabled = S.rate <= 0;
     $("up").disabled = S.rate >= 5;
-    var d = S.rate - S.lagged, el = $("delta");
-    if (Math.abs(d) < 0.001){ el.textContent = "Hold at " + pct(S.rate); el.className = "delta"; }
-    else if (d > 0){ el.textContent = "+" + d.toFixed(2).replace(/0$/,'') + "pp hike — cools prices, costs jobs (with a lag)";
-                     el.className = "delta up"; }
-    else { el.textContent = d.toFixed(2).replace(/0$/,'') + "pp cut — supports jobs, risks inflation";
-           el.className = "delta down"; }
+    var d = S.rate - S.lagged;
+    $("hint").textContent = Math.abs(d) < 0.001 ? "Holding at " + pct(S.rate)
+      : (d > 0 ? "Hike of " + d.toFixed(2) + "pp — bites next quarter"
+               : "Cut of " + Math.abs(d).toFixed(2) + "pp — bites next quarter");
+  }
+  function popScore(delta){
+    if (!delta) return;
+    var el = document.createElement("span");
+    el.className = "pop " + (delta > 0 ? "up" : "dn");
+    el.textContent = (delta > 0 ? "+" : "") + delta;
+    $("score").parentNode.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 1000);
   }
 
-  // ---------- Chart ----------
-  var cv = $("chart"), ctx = cv.getContext("2d");
-  function sizeCanvas(){
-    var dpr = window.devicePixelRatio || 1;
-    var w = cv.clientWidth, h = cv.clientHeight;
-    cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr);
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    return {w:w,h:h};
-  }
-  function drawChart(){
-    var d = sizeCanvas(), w = d.w, h = d.h;
-    var padL = 28, padR = 10, padT = 10, padB = 20;
-    var W = w-padL-padR, H = h-padT-padB;
-    var YMIN = 0, YMAX = 8;
-    var X = function(q){ return padL + (q/(QUARTERS)) * W; };
-    var Y = function(v){ return padT + (1 - (clamp(v,YMIN,YMAX)-YMIN)/(YMAX-YMIN)) * H; };
-
-    ctx.clearRect(0,0,w,h);
-
-    // target bands
-    ctx.fillStyle = "rgba(46,160,67,.13)";
-    ctx.fillRect(padL, Y(INFL_BAND.hi), W, Y(INFL_BAND.lo)-Y(INFL_BAND.hi));
-    ctx.fillStyle = "rgba(255,180,84,.09)";
-    ctx.fillRect(padL, Y(UNEMP_BAND.hi), W, Y(UNEMP_BAND.lo)-Y(UNEMP_BAND.hi));
-
-    // grid + axis labels
-    ctx.strokeStyle = "#2b3440"; ctx.lineWidth = 1;
-    ctx.fillStyle = "#93a1b0"; ctx.font = "10px -apple-system,system-ui,sans-serif";
-    ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    for (var v=0; v<=8; v+=2){
-      var y = Math.round(Y(v))+0.5;
-      ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(w-padR,y); ctx.stroke();
-      ctx.fillText(v+"%", padL-6, y);
-    }
-    ctx.textAlign = "center"; ctx.textBaseline = "top";
-    var every = Math.ceil(QUARTERS/5);
-    for (var q=0;q<=QUARTERS;q++){
-      if (q!==0 && q!==QUARTERS && q%every) continue;
-      ctx.fillText(q===0?"now":"Q"+q, X(q), h-padB+5);
-    }
-
-    function line(key, colour, dash, width){
-      ctx.save();
-      ctx.setLineDash(dash); ctx.strokeStyle = colour; ctx.lineWidth = width;
-      ctx.lineJoin = "round"; ctx.beginPath();
-      S.hist.forEach(function(p,i){
-        var x = X(p.q), y = Y(p[key]);
-        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-      });
-      ctx.stroke(); ctx.restore();
-      if (dash.length || QUARTERS > 12) return;
-      ctx.fillStyle = colour;
-      S.hist.forEach(function(p){
-        ctx.beginPath(); ctx.arc(X(p.q), Y(p[key]), 3, 0, Math.PI*2); ctx.fill();
-      });
-    }
-    line("rate", "#7b8794", [3,3], 1.5);
-    line("unemp", "#ffb454", [], 2.5);
-    line("infl", "#5aa9ff", [], 2.5);
-  }
-
-  // ---------- End screen ----------
+  // ---------- Results ----------
   function finish(){
     S.over = true;
     var bonus = (S.unemp < START.unemployment) ? 5 : 0;
     S.score += bonus;
 
-    var rows = [
-      ["Quarters in both bands", "+" + S.bandPoints, S.bandPoints>0],
-      ["Deviation from bands", (S.missPoints < 0.5 ? "0" : "−" + Math.round(S.missPoints)), S.missPoints < 0.5 ? null : false],
-      ["Energy shocks weathered", S.shocksHit + (S.majorHits ? " (" + S.majorHits + " major)" : ""), null]
+    // Graded against a par that moves with the hand you were dealt: a term with
+    // a 1974-scale energy crisis in it cannot be judged against a calm one.
+    var par = Math.max(28 - 45*S.crisisHits - 4*S.majorHits, -95);
+
+    var lines = [
+      ["Quarters on target", "+" + S.bandPoints, true],
+      ["Longest run in both bands", S.bestStreak + (S.bestStreak===1?" quarter":" quarters"), S.bestStreak >= 5 ? true : null],
+      ["Time outside the bands", S.missPoints < 0.5 ? "0" : "−" + Math.round(S.missPoints), S.missPoints < 0.5 ? null : false],
+      ["Peak inflation", f1(S.peakInfl), S.peakInfl < CRISIS_CPI],
+      ["Getting inflation back down", S.fightPoints ? "+" + S.fightPoints : "0", S.fightPoints ? true : null],
+      ["Shocks weathered", S.shocksHit + (S.crisisHits ? " · " + S.crisisHits + " crisis" : ""), null]
     ];
-    rows.push(["Expectations on leaving office", f1(S.exp), Math.abs(S.exp-2.0) <= 0.45]);
-    if (S.outvotes) rows.push(["Times outvoted by the Committee", String(S.outvotes), null]);
-    if (S.crisisPenalty) rows.push(["Credibility crisis (CPI ≥ 3.5%)","−8", false]);
-    rows.push([ (bonus? "Unemployment improving (bonus)" : "Unemployment not improved"), (bonus?"+5":"0"), !!bonus ]);
-    rows.push(["Final score", String(Math.round(S.score)), null]);
+    if (S.outvotes) lines.push(["Outvoted by the Committee", String(S.outvotes) + "×", null]);
+    if (S.crisisHits) lines.push(["Par for a term this rough", String(Math.round(par)), null]);
+    if (S.crisisPenalty) lines.push(["Credibility crisis", "−8", false]);
+    lines.push([bonus ? "Unemployment improving" : "Unemployment not improved", bonus ? "+5" : "0", !!bonus]);
 
-    $("breakdown").innerHTML = rows.map(function(r){
-      var cls = r[2]===null ? "" : (r[2] ? "pos" : "neg");
-      return '<div class="row"><span>'+r[0]+'</span><span class="v '+cls+'">'+r[1]+'</span></div>';
-    }).join("");
+    $("lines").innerHTML = lines.map(function(l){
+      var c = l[2]===null ? "" : (l[2] ? "pos" : "neg");
+      return '<div class="ln"><span>'+l[0]+'</span><span class="v '+c+'">'+l[1]+'</span></div>';
+    }).join("") + '<div class="ln total"><span>Final score</span><span class="v">'+Math.round(S.score)+'</span></div>';
 
-    var s = S.score, rating, verdict;
-    if (s >= 30){ rating = "🎖️ Reappointed for a second term";
-      verdict = "Textbook stewardship. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+" — the Chancellor is delighted."; }
-    else if (s >= 8){ rating = "🤝 Term completed, credibility intact";
-      verdict = "A serviceable record. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+". The markets can live with it."; }
-    else if (s >= -25){ rating = "📉 Under review by the Treasury Select Committee";
-      verdict = "Awkward hearings ahead. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
-    else { rating = "💥 Resign in disgrace";
-      verdict = "The letters to the Chancellor piled up. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
-    $("rating").textContent = rating;
-    $("verdict").textContent = verdict;
+    var s = S.score;
+    var medal, rating, say;
+    if (s >= 30){ medal="🎖️"; rating="Reappointed"; say="A second term, and the Chancellor's thanks. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
+    else if (s >= par){ medal="🏅"; rating="Reappointed on the record";
+      say="You were handed a crisis and still beat par ("+Math.round(par)+"). CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
+    else if (s >= par - 22){ medal="🤝"; rating="Term served"; say="Credibility intact, if not burnished. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
+    else if (s >= par - 55){ medal="📉"; rating="Called before the Committee"; say="The Treasury Select Committee has questions. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
+    else { medal="💥"; rating="Resign in disgrace"; say="The letters to the Chancellor piled up. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
+    $("medal").textContent = medal; $("rating").textContent = rating; $("say").textContent = say;
 
+    $("qName").textContent = "Term complete";
+    $("qNum").textContent = QUARTERS + " quarters served";
     $("game").classList.add("hide");
     $("end").classList.remove("hide");
     $("score").textContent = Math.round(S.score);
@@ -638,74 +523,75 @@
 
   // ---------- Wiring ----------
   var slider = $("rate");
-  slider.addEventListener("input", function(){
-    S.rate = parseFloat(slider.value);
-    updateRateUI();
-  });
-
-  function showVote(v, proposal){
-    var el = $("mpc");
-    el.className = "mpc " + (v.carried ? "carried" : "outvoted");
-    $("mpcTally").textContent = v.forV + "–" + v.against;
-    $("mpcText").textContent = v.carried
-      ? "Committee backs " + pct(proposal) + "."
-      : "Outvoted — the Committee sets " + pct(v.rate) + ".";
-  }
-
-  $("next").addEventListener("click", function(){
-    if (S.over) return;
-    var wasCrisis = S.crisisFired;
-    var proposal = S.rate;
-    var v = mpcVote(proposal);
-    if (!v.carried) S.outvotes++;
-    S.rate = v.rate;                 // the committee's decision is the one that stands
-    slider.value = String(S.rate);
-    var ev = step(v.rate);
-    showVote(v, proposal);
-    setShock(ev, !wasCrisis && S.crisisFired);
-    render();
-    if (S.q >= QUARTERS) finish();
-    else updateRateUI();
-  });
-
-  function nudge(delta){
-    S.rate = clamp(Math.round((S.rate + delta)*4)/4, 0, 5);
-    slider.value = String(S.rate);
-    updateRateUI();
-    if (window.navigator.vibrate) window.navigator.vibrate(8);
+  slider.addEventListener("input", function(){ S.rate = parseFloat(slider.value); updateRate(); });
+  function nudge(d){
+    S.rate = clamp(Math.round((S.rate + d)*4)/4, 0, 5);
+    slider.value = String(S.rate); updateRate();
+    if (navigator.vibrate) navigator.vibrate(8);
   }
   $("down").addEventListener("click", function(){ nudge(-0.25); });
   $("up").addEventListener("click", function(){ nudge(0.25); });
 
+  function setEvent(ev, tier, crisisNow){
+    var el = $("event");
+    if (crisisNow){
+      $("evEmoji").textContent = "🚨";
+      $("evTitle").textContent = "Letter to the Chancellor";
+      $("evText").textContent = "Inflation above 3.5%. The Governor must explain himself in writing. −8 points.";
+      el.className = "event bad shake";
+    } else {
+      $("evEmoji").textContent = ev[0];
+      $("evTitle").textContent = ev[1];
+      $("evText").textContent = ev[2];
+      el.className = "event" + (tier === 3 ? " bad shake" : (tier === 2 ? " bad" : (tier === 1 ? " warn" : "")));
+    }
+    void el.offsetWidth;   // restart the animation on repeat events
+  }
+
+  $("go").addEventListener("click", function(){
+    if (S.over) return;
+    var proposal = S.rate, wasCrisis = S.crisisFired;
+    var v = mpcVote(proposal);
+    if (!v.carried) S.outvotes++;
+    S.rate = v.rate; slider.value = String(S.rate);
+
+    var out = step(v.rate);
+    var vote = $("vote");
+    vote.className = "vote " + (v.carried ? "won" : "lost");
+    $("voteTally").textContent = v.forV + "–" + v.against;
+    $("voteText").textContent = v.carried ? "Carried. Bank Rate " + pct(proposal) + "."
+                                          : "Outvoted. The Committee sets " + pct(v.rate) + ".";
+    setEvent(out.ev, out.tier, !wasCrisis && S.crisisFired);
+    render();
+    popScore(out.delta);
+    if (S.q >= QUARTERS) finish(); else updateRate();
+  });
+
   function restart(){
     reset();
-    $("end").classList.add("hide");
-    $("game").classList.remove("hide");
+    $("end").classList.add("hide"); $("game").classList.remove("hide");
     slider.value = String(S.rate);
-    $("mpc").className = "mpc";
-    $("mpcTally").textContent = "MPC";
-    $("mpcText").textContent = "Nine members. Propose a rate and they will vote on it.";
-    setShock(CALM[0], false);
-    updateRateUI();
-    render();
+    $("vote").className = "vote";
+    $("voteTally").textContent = "MPC";
+    $("voteText").textContent = "Eight other members vote on whatever you propose.";
+    $("evEmoji").textContent = "🏦";
+    $("evTitle").textContent = "Your first meeting";
+    $("evText").textContent = "Inflation is 2.6% and drifting. Set Bank Rate and put it to the vote.";
+    $("event").className = "event";
+    updateRate(); render();
     window.scrollTo({top:0});
   }
 
-  // Mid-game Restart asks twice: it sits inline, and one stray tap
-  // should not wipe a twenty-quarter run.
-  var armed = null, r1 = $("restart1");
-  r1.addEventListener("click", function(){
-    if (armed){ clearTimeout(armed); armed = null; r1.textContent = "Restart";
-                r1.classList.remove("confirm"); restart(); return; }
-    r1.textContent = "Sure?"; r1.classList.add("confirm");
-    armed = setTimeout(function(){ armed = null; r1.textContent = "Restart";
-                                   r1.classList.remove("confirm"); }, 3000);
+  var armed = null, rb = $("restart");
+  rb.addEventListener("click", function(){
+    if (S.over || S.q === 0){ restart(); return; }
+    if (armed){ clearTimeout(armed); armed = null; rb.className = "icon-btn"; rb.textContent = "↻"; restart(); return; }
+    rb.className = "icon-btn confirm"; rb.textContent = "?";
+    armed = setTimeout(function(){ armed = null; rb.className = "icon-btn"; rb.textContent = "↻"; }, 3000);
   });
-  $("restart2").addEventListener("click", restart);
+  $("again").addEventListener("click", restart);
 
-  window.addEventListener("resize", function(){ drawChart(); });
-  if (window.visualViewport) window.visualViewport.addEventListener("resize", drawChart);
-
+  window.addEventListener("resize", render);
   restart();
 })();
 </script>
