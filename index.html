@@ -77,6 +77,26 @@
   .shock .t{font-weight:700;display:block;margin-bottom:1px}
   .shock .s{color:var(--muted)}
 
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .chip{flex:1 1 auto;font-size:11px;color:var(--muted);background:var(--panel-2);
+    border:1px solid var(--line);border-radius:8px;padding:5px 8px;white-space:nowrap}
+  .chip b{font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-size:10px}
+  .chip i{font-style:normal;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:700;float:right}
+  .chip.warn{border-color:rgba(210,153,34,.5);background:rgba(210,153,34,.10)}
+  .chip.warn span{color:var(--warn)}
+  .chip.bad{border-color:rgba(240,83,63,.55);background:rgba(240,83,63,.12)}
+  .chip.bad span{color:#ff9b8b}
+  .lbl-short{display:none}
+
+  .mpc{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);
+    background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r);
+    padding:9px 11px;margin-bottom:10px}
+  .mpc .tally{flex:0 0 auto;font-weight:800;font-size:11px;letter-spacing:.5px;color:var(--ink);
+    background:var(--line);border-radius:6px;padding:3px 7px;font-variant-numeric:tabular-nums}
+  .mpc.carried .tally{background:rgba(46,160,67,.25);color:#7ee08f}
+  .mpc.outvoted{border-color:rgba(210,153,34,.55);background:rgba(210,153,34,.10)}
+  .mpc.outvoted .tally{background:rgba(210,153,34,.28);color:#ffd479}
+
   /* Sticky control dock: the rate + advance controls stay reachable with a
      thumb for all 20 quarters, so you never scroll to make a decision. */
   .dock{position:sticky;bottom:0;z-index:5;margin:0 -12px;padding:10px 12px
@@ -154,6 +174,12 @@
     /* Not enough vertical room for the banner above the fold as well as the
        gauges and the shock headline: move it below the game instead. */
     #ad-top{order:5} footer{order:6}
+    /* Chips collapse to label + number so all three sit on one row, keeping
+       the vote result and the shock headline above the dock. */
+    .lbl-long{display:none} .lbl-short{display:inline}
+    .chip{padding:4px 7px;text-align:left}
+    .chip > span{display:none}
+    .mpc{padding:7px 9px;margin-bottom:8px}
   }
   /* Very narrow phones */
   @media (max-width:340px){
@@ -213,6 +239,20 @@
         <div class="track"><div class="zone" id="unZone"></div><div class="marker" id="unMark"></div></div>
         <div class="ticks"><span>2%</span><span>4%</span><span>6%</span><span>8%</span></div>
       </div>
+
+      <div class="chips">
+        <span class="chip" id="expChip" title="Where the public expects inflation to settle">
+          <b><span class="lbl-long">Expectations</span><span class="lbl-short">Exp</span></b> <span id="expState">anchored</span> <i id="expVal">2.3%</i></span>
+        <span class="chip" id="gbpChip" title="Sterling versus the global policy rate">
+          <b><span class="lbl-long">Sterling</span><span class="lbl-short">GBP</span></b> <span id="gbpState">steady</span> <i id="gbpVal">$1.30</i></span>
+        <span class="chip" id="globalChip" title="Average policy rate of the Fed and ECB">
+          <b><span class="lbl-long">Global rate</span><span class="lbl-short">World</span></b> <span id="globalState">in line</span> <i id="globalVal">3.25%</i></span>
+      </div>
+    </div>
+
+    <div class="mpc" id="mpc" aria-live="polite">
+      <span class="tally" id="mpcTally">MPC</span>
+      <span id="mpcText">Nine members. Propose a rate and they will vote on it.</span>
     </div>
 
     <div class="shock" id="shock" aria-live="polite">
@@ -240,7 +280,7 @@
         <button class="step" id="up" type="button" aria-label="Raise rate by 0.25 points">+</button>
       </div>
       <div class="delta" id="delta" aria-live="polite">Hold at 3.75%</div>
-      <button class="btn-primary" id="next">Set Rate &amp; Advance →</button>
+      <button class="btn-primary" id="next">Propose to the MPC →</button>
     </div>
   </div>
 
@@ -269,11 +309,15 @@
 
   // ---------- Calibration (August 2026) ----------
   var START = { rate:3.75, inflation:2.6, unemployment:4.9 };
-  var NEUTRAL = 3.0;                     // estimated nominal neutral rate
+  var NEUTRAL = 3.0;                     // neutral rate at the start; it tracks the global rate
+  var NEUTRAL_LEAD = -0.25;              // UK neutral sits this far below the global average
   var INFL_BAND = { lo:1.0, hi:3.0 };    // 2% +/- 1
   var UNEMP_BAND = { lo:3.0, hi:5.0 };   // 4% +/- 1
   var QUARTERS = 20;
   var CRISIS = 3.5;
+  var START_EXP = 2.3;      // where the public expects inflation to settle
+  var GLOBAL_RATE = 3.25;   // Fed/ECB average at the start; it drifts through the term
+  var MPC_BIAS = [-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75];  // eight members either side of you
   var QNAMES = (function(){
     var out=[], y=2026, q=3;
     for (var i=0;i<QUARTERS;i++){ out.push("Q"+q+" "+y); if(++q>4){q=1;y++;} }
@@ -307,6 +351,13 @@
       lagged:START.rate,        // rate that acts on the economy this quarter (one-quarter lag)
       infl:START.inflation,
       unemp:START.unemployment,
+      exp:START_EXP,            // inflation expectations
+      gbp:1.30,                 // sterling, driven by the gap to the global rate
+      global:GLOBAL_RATE,       // global policy rate, wanders on its own cycle
+      globalDrift:0,
+      // Each term gets its own global cycle: easing, tightening or choppy.
+      globalBias:[-0.075,-0.04,0,0.04,0.075][(Math.random()*5)|0],
+      outvotes:0,
       score:0,
       crisisFired:false,
       crisisPenalty:0,
@@ -328,17 +379,44 @@
   function outBy(v,b){ return v<b.lo ? b.lo-v : (v>b.hi ? v-b.hi : 0); }
   function pct(v){ return v.toFixed(2).replace(/\.?0+$/,'') + "%"; }
   function f1(v){ return v.toFixed(1)+"%"; }
+  // The UK neutral rate is not fixed: it moves with world real rates, so the
+  // Bank Rate that was right last year is not the one that is right now.
+  function neutralRate(){ return clamp(S.global + NEUTRAL_LEAD, 0.75, 4.5); }
+
+  // ---------- The Committee ----------
+  // You are one vote of nine. Each member reads the same data through a
+  // Taylor-style rule plus a standing hawkish or dovish bias, and backs your
+  // proposal only if it lands near their own preference. Lose the vote and the
+  // rate that bites is the committee median, not yours.
+  function mpcVote(proposal){
+    var votes = [proposal], forV = 1;             // the Governor votes for their own motion
+    for (var i=0;i<MPC_BIAS.length;i++){
+      var pref = clamp(neutralRate() + 1.3*(S.infl - 2.0) - 0.7*(S.unemp - 4.4) + MPC_BIAS[i], 0, 5);
+      pref = Math.round(pref*4)/4;
+      if (Math.abs(pref - proposal) <= 0.5){ forV++; votes.push(proposal); }
+      else votes.push(pref);
+    }
+    var carried = forV >= 5;
+    if (carried) return { rate:proposal, forV:forV, against:9-forV, carried:true };
+    votes.sort(function(a,b){ return a-b; });
+    return { rate:votes[4], forV:forV, against:9-forV, carried:false };
+  }
 
   // ---------- Economy ----------
-  function step(){
-    var gap = S.lagged - NEUTRAL;                 // policy stance
+  function step(decided){
+    var gap = S.lagged - neutralRate();           // policy stance, still one quarter behind
+    // The rest of the world moves first: global rates wander, dragging the UK
+    // neutral rate with them, so a Bank Rate left alone slowly becomes wrong.
+    S.globalDrift = clamp(S.globalDrift*0.72 + S.globalBias + (Math.random()-0.5)*0.26, -0.35, 0.35);
+    S.global = clamp(S.global + S.globalDrift, 1.5, 4.75);
+
     var shock = 0, ev, major = false;
-    if (Math.random() < 0.25) {
+    if (Math.random() < 0.22) {
       S.shocksHit++;
-      major = Math.random() < 0.34;               // roughly a third of shocks are severe
+      major = Math.random() < 0.30;               // roughly a third of shocks are severe
       if (major) {
         ev = MAJOR_SHOCKS[(Math.random()*MAJOR_SHOCKS.length)|0];
-        shock = 0.80; S.majorHits++;
+        shock = 0.65; S.majorHits++;
       } else {
         ev = SHOCKS[(Math.random()*SHOCKS.length)|0];
         shock = 0.30;
@@ -347,15 +425,29 @@
       ev = CALM[(Math.random()*CALM.length)|0];
     }
     var totalShock = shock + S.shockCarry;
-    var noise = (Math.random()-0.5)*0.16;
+    var noise = (Math.random()-0.5)*0.10;
 
-    S.infl  = clamp(S.infl  + (-0.35*gap) - 0.25*(S.infl - 2.0) + totalShock + noise, -1, 12);
-    S.unemp = clamp(S.unemp + ( 0.18*gap) - 0.12*(S.unemp - 4.4) + 0.10*S.shockCarry, 2.5, 12);
+    // Sterling channel: hold rates well below the global average and the pound
+    // slides, importing inflation. Hold above it and imports get cheaper.
+    var rateGap = S.lagged - S.global;
+    var importPush = clamp(-0.22 * rateGap, -0.5, 0.5);
+    S.gbp = clamp(1.30 + 0.06 * rateGap, 1.05, 1.55);
+
+    // Inflation reverts toward what people EXPECT, not toward the 2% target.
+    S.infl  = clamp(S.infl  + (-0.50*gap) - 0.20*(S.infl - S.exp) + totalShock + importPush + noise, -1, 12);
+    S.unemp = clamp(S.unemp + ( 0.17*gap) - 0.12*(S.unemp - 4.4) + 0.10*S.shockCarry, 2.5, 12);
+
+    // Expectations drift toward realised inflation, and re-anchor toward 2%
+    // only while you keep inflation inside the band. Let them slip and every
+    // subsequent quarter of disinflation costs more.
+    S.exp += 0.10*(S.infl - S.exp);
+    if (inBand(S.infl, INFL_BAND)) S.exp += 0.20*(2.0 - S.exp);
+    S.exp = clamp(S.exp, 0.5, 8);
 
     // Major shocks leave a bigger tail that decays over two or three quarters.
-    S.shockCarry = shock > 0 ? (major ? 0.35 : 0.10) : S.shockCarry * 0.40;
+    S.shockCarry = shock > 0 ? (major ? 0.26 : 0.10) : S.shockCarry * 0.40;
     if (S.shockCarry < 0.02) S.shockCarry = 0;
-    S.lagged = S.rate;    // this quarter's decision bites next quarter
+    S.lagged = decided;   // this quarter's decision bites next quarter
     S.q++;
 
     // scoring
@@ -410,8 +502,24 @@
       : "Quarter " + (S.q+1) + " of " + QUARTERS + " · " + QNAMES[S.q];
     gauge("inflMark","inflZone","inflVal", S.infl, INFL_BAND, 0, 6);
     gauge("unMark","unZone","unVal", S.unemp, UNEMP_BAND, 2, 8);
+
+    var drift = Math.abs(S.exp - 2.0);
+    $("expChip").className = "chip" + (drift > 1.0 ? " bad" : (drift > 0.45 ? " warn" : ""));
+    $("expState").textContent = drift > 1.0 ? "de-anchored" : (drift > 0.45 ? "slipping" : "anchored");
+    $("expVal").textContent = f1(S.exp);
+
+    var slide = 1.30 - S.gbp;
+    $("gbpChip").className = "chip" + (slide > 0.045 ? " bad" : (slide > 0.02 ? " warn" : ""));
+    $("gbpState").textContent = slide > 0.045 ? "sliding" : (slide > 0.02 ? "soft" : (slide < -0.02 ? "firm" : "steady"));
+    $("gbpVal").textContent = "$" + S.gbp.toFixed(2);
+
+    var lead = S.rate - S.global;
+    $("globalChip").className = "chip" + (Math.abs(lead) > 1.0 ? " warn" : "");
+    $("globalState").textContent = Math.abs(lead) <= 0.3 ? "in line"
+      : (lead > 0 ? "you are " + Math.abs(lead).toFixed(2) + " above" : "you are " + Math.abs(lead).toFixed(2) + " below");
+    $("globalVal").textContent = f1(S.global);
     renderPips();
-    $("next").textContent = (S.q === QUARTERS-1) ? "Final Decision → Results" : "Set Rate & Advance →";
+    $("next").textContent = (S.q === QUARTERS-1) ? "Final Vote → Results" : "Propose to the MPC →";
     drawChart();
   }
 
@@ -499,6 +607,8 @@
       ["Deviation from bands", (S.missPoints < 0.5 ? "0" : "−" + Math.round(S.missPoints)), S.missPoints < 0.5 ? null : false],
       ["Energy shocks weathered", S.shocksHit + (S.majorHits ? " (" + S.majorHits + " major)" : ""), null]
     ];
+    rows.push(["Expectations on leaving office", f1(S.exp), Math.abs(S.exp-2.0) <= 0.45]);
+    if (S.outvotes) rows.push(["Times outvoted by the Committee", String(S.outvotes), null]);
     if (S.crisisPenalty) rows.push(["Credibility crisis (CPI ≥ 3.5%)","−8", false]);
     rows.push([ (bonus? "Unemployment improving (bonus)" : "Unemployment not improved"), (bonus?"+5":"0"), !!bonus ]);
     rows.push(["Final score", String(Math.round(S.score)), null]);
@@ -533,10 +643,25 @@
     updateRateUI();
   });
 
+  function showVote(v, proposal){
+    var el = $("mpc");
+    el.className = "mpc " + (v.carried ? "carried" : "outvoted");
+    $("mpcTally").textContent = v.forV + "–" + v.against;
+    $("mpcText").textContent = v.carried
+      ? "Committee backs " + pct(proposal) + "."
+      : "Outvoted — the Committee sets " + pct(v.rate) + ".";
+  }
+
   $("next").addEventListener("click", function(){
     if (S.over) return;
     var wasCrisis = S.crisisFired;
-    var ev = step();
+    var proposal = S.rate;
+    var v = mpcVote(proposal);
+    if (!v.carried) S.outvotes++;
+    S.rate = v.rate;                 // the committee's decision is the one that stands
+    slider.value = String(S.rate);
+    var ev = step(v.rate);
+    showVote(v, proposal);
     setShock(ev, !wasCrisis && S.crisisFired);
     render();
     if (S.q >= QUARTERS) finish();
@@ -557,6 +682,9 @@
     $("end").classList.add("hide");
     $("game").classList.remove("hide");
     slider.value = String(S.rate);
+    $("mpc").className = "mpc";
+    $("mpcTally").textContent = "MPC";
+    $("mpcText").textContent = "Nine members. Propose a rate and they will vote on it.";
     setShock(CALM[0], false);
     updateRateUI();
     render();
