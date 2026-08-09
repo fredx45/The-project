@@ -133,6 +133,22 @@
     touch-action:manipulation;box-shadow:0 6px 0 #8E0F24}
   .go:active{transform:translateY(3px);box-shadow:0 3px 0 #8E0F24}
 
+  /* ---- Intro ---- */
+  #intro.screen{flex:1 1 auto;display:flex;flex-direction:column}
+  .titleblock{padding:6px 2px 14px}
+  .crest{width:46px;height:46px;border-radius:14px;background:var(--cta);display:grid;place-items:center;
+    font-size:22px;font-weight:900;color:#fff;margin-bottom:14px;box-shadow:0 5px 0 #8E0F24}
+  #intro h1{margin:0;font-size:32px;line-height:1.02;font-weight:900;letter-spacing:-1.4px;text-wrap:balance}
+  #intro h1 span{color:var(--cta)}
+  .standfirst{margin:10px 0 0;font-size:13.5px;line-height:1.5;color:var(--muted);max-width:34em}
+  .guide{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:8px}
+  .guide li{display:flex;gap:11px;align-items:flex-start;background:var(--panel);
+    border:1px solid var(--line);border-radius:14px;padding:11px 12px}
+  .guide .n{flex:0 0 auto;width:22px;height:22px;border-radius:8px;background:var(--raised);
+    color:var(--ink);font-size:11px;font-weight:900;display:grid;place-items:center;margin-top:1px}
+  .guide b{display:block;font-size:13px;margin-bottom:2px}
+  .guide span span,.guide li>span:last-child{font-size:12px;color:var(--muted);line-height:1.4}
+
   /* ---- Ads ---- */
   .ad-slot{min-height:64px;border:1px dashed var(--line);border-radius:14px;display:grid;place-items:center;
     color:#4C5875;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;padding:8px}
@@ -164,7 +180,44 @@
 <body>
 <div class="app">
 
-  <div class="hud">
+  <div id="intro" class="screen">
+    <div class="titleblock">
+      <div class="crest">£</div>
+      <h1>Bank of England<br><span>Governor</span></h1>
+      <p class="standfirst">August 2026. Inflation is 2.6%, unemployment 4.9%,
+        and the Middle East is on fire. You have five years.</p>
+    </div>
+
+    <ol class="guide">
+      <li><span class="n">1</span><span><b>Set Bank Rate each quarter</b>
+        Anywhere from 0% to 15%. Twenty quarters, then they judge your record.</span></li>
+      <li><span class="n">2</span><span><b>Hit both targets</b>
+        Inflation 1–3% and unemployment 3–5%. Both inside, both at once, scores +2 —
+        and a run of good quarters pays more each time.</span></li>
+      <li><span class="n">3</span><span><b>Everything arrives late</b>
+        A rate change bites the following quarter. Hikes cool prices and cost jobs;
+        cuts do the reverse. Act early or don't bother.</span></li>
+      <li><span class="n">4</span><span><b>Shocks will find you</b>
+        Energy crises hit without warning, and a bad one can put inflation into
+        double digits for years.</span></li>
+      <li><span class="n">5</span><span><b>The Committee only advises</b>
+        Eight members tell you what they'd have done. The decision is always yours.</span></li>
+    </ol>
+
+    <!-- ===== AD SLOT (pre-game) ===== -->
+    <div class="ad-slot" id="adIntro">
+      Advertisement
+      <!--
+      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-REPLACE_ME"
+           data-ad-slot="REPLACE_ME" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+      -->
+    </div>
+
+    <div class="dock"><button class="go" id="start">TAKE OFFICE</button></div>
+  </div>
+
+  <div class="hud hide" id="hud">
     <div class="term">
       <div class="q" id="qName">Q3 2026</div>
       <div class="sub" id="qNum">Quarter 1 of 20</div>
@@ -173,9 +226,9 @@
     <button class="icon-btn" id="restart" title="Restart" aria-label="Restart">↻</button>
   </div>
 
-  <div class="dots" id="dots" aria-hidden="true"></div>
+  <div class="dots hide" id="dots" aria-hidden="true"></div>
 
-  <div id="game" class="screen">
+  <div id="game" class="screen hide">
     <div class="tiles" style="margin-bottom:10px">
       <div class="tile" id="tileI">
         <div class="lbl"><span class="swatch" style="background:var(--infl)"></span> Inflation</div>
@@ -590,7 +643,8 @@
 
   function restart(){
     reset();
-    $("end").classList.add("hide"); $("game").classList.remove("hide");
+    $("end").classList.add("hide");
+    if ($("intro").classList.contains("hide")) $("game").classList.remove("hide");
     slider.value = String(S.rate);
     $("vote").className = "vote";
     $("voteTally").textContent = "MPC";
@@ -611,6 +665,13 @@
     armed = setTimeout(function(){ armed = null; rb.className = "icon-btn"; rb.textContent = "↻"; }, 3000);
   });
   $("again").addEventListener("click", restart);
+
+  $("start").addEventListener("click", function(){
+    $("intro").classList.add("hide");
+    $("hud").classList.remove("hide");
+    $("dots").classList.remove("hide");
+    restart();
+  });
 
   window.addEventListener("resize", render);
   restart();
