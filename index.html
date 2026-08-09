@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bank of England Governor</title>
-<meta name="description" content="Set UK Bank Rate for six quarters. Keep inflation and unemployment inside the target bands. A 2-minute UK economics game.">
+<meta name="description" content="Set UK Bank Rate across a five-year term. Keep inflation and unemployment inside the Bank of England target bands.">
 <!--
   To activate advertising, add this to <head>:
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-REPLACE_ME" crossorigin="anonymous"></script>
@@ -40,9 +40,9 @@
 
   .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;margin-bottom:10px}
 
-  .qbar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:10px}
-  .pips{display:flex;gap:4px;margin-left:auto}
-  .pip{width:16px;height:5px;border-radius:3px;background:var(--line)}
+  .qbar{font-size:12px;color:var(--muted);margin-bottom:10px}
+  .pips{display:flex;gap:3px;margin-top:6px}
+  .pip{flex:1 1 0;min-width:0;height:5px;border-radius:3px;background:var(--line)}
   .pip.done{background:var(--good)} .pip.miss{background:var(--bad)} .pip.now{background:var(--muted)}
 
   .gauge+.gauge{margin-top:14px}
@@ -132,7 +132,7 @@
 
   <div id="game">
     <div class="card">
-      <div class="qbar"><span id="qlabel">Quarter 1 of 6 · Q3 2026</span>
+      <div class="qbar"><span id="qlabel">Quarter 1 of 20 · Q3 2026</span>
         <div class="pips" id="pips" aria-hidden="true"></div>
       </div>
 
@@ -214,9 +214,13 @@
   var NEUTRAL = 3.0;                     // estimated nominal neutral rate
   var INFL_BAND = { lo:1.0, hi:3.0 };    // 2% +/- 1
   var UNEMP_BAND = { lo:3.0, hi:5.0 };   // 4% +/- 1
-  var QUARTERS = 6;
+  var QUARTERS = 20;
   var CRISIS = 3.5;
-  var QNAMES = ["Q3 2026","Q4 2026","Q1 2027","Q2 2027","Q3 2027","Q4 2027"];
+  var QNAMES = (function(){
+    var out=[], y=2026, q=3;
+    for (var i=0;i<QUARTERS;i++){ out.push("Q"+q+" "+y); if(++q>4){q=1;y++;} }
+    return out;
+  })();
 
   var SHOCKS = [
     ["🛢️","OPEC+ supply disruption!","Output quotas slashed overnight — Brent jumps $14."],
@@ -329,7 +333,7 @@
     $("score").textContent = Math.round(S.score);
     $("score").style.color = S.score < 0 ? "var(--bad)" : "var(--ink)";
     $("qlabel").textContent = S.over
-      ? "Term complete · 6 quarters"
+      ? "Term complete · " + QUARTERS + " quarters"
       : "Quarter " + (S.q+1) + " of " + QUARTERS + " · " + QNAMES[S.q];
     gauge("inflMark","inflZone","inflVal", S.infl, INFL_BAND, 0, 6);
     gauge("unMark","unZone","unVal", S.unemp, UNEMP_BAND, 2, 8);
@@ -383,7 +387,9 @@
       ctx.fillText(v+"%", padL-6, y);
     }
     ctx.textAlign = "center"; ctx.textBaseline = "top";
+    var every = Math.ceil(QUARTERS/5);
     for (var q=0;q<=QUARTERS;q++){
+      if (q!==0 && q!==QUARTERS && q%every) continue;
       ctx.fillText(q===0?"now":"Q"+q, X(q), h-padB+5);
     }
 
@@ -396,7 +402,7 @@
         if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
       });
       ctx.stroke(); ctx.restore();
-      if (dash.length) return;
+      if (dash.length || QUARTERS > 12) return;
       ctx.fillStyle = colour;
       S.hist.forEach(function(p){
         ctx.beginPath(); ctx.arc(X(p.q), Y(p[key]), 3, 0, Math.PI*2); ctx.fill();
@@ -428,11 +434,11 @@
     }).join("");
 
     var s = S.score, rating, verdict;
-    if (s >= 10){ rating = "🎖️ Reappointed for a second term";
+    if (s >= 30){ rating = "🎖️ Reappointed for a second term";
       verdict = "Textbook stewardship. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+" — the Chancellor is delighted."; }
-    else if (s >= 2){ rating = "🤝 Term completed, credibility intact";
+    else if (s >= 8){ rating = "🤝 Term completed, credibility intact";
       verdict = "A serviceable record. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+". The markets can live with it."; }
-    else if (s >= -10){ rating = "📉 Under review by the Treasury Select Committee";
+    else if (s >= -25){ rating = "📉 Under review by the Treasury Select Committee";
       verdict = "Awkward hearings ahead. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
     else { rating = "💥 Resign in disgrace";
       verdict = "The letters to the Chancellor piled up. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
