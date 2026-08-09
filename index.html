@@ -6,18 +6,23 @@
 <title>Bank of England Governor</title>
 <meta name="description" content="Twenty quarters. Two targets. Set UK Bank Rate, survive the shocks, keep your job.">
 <meta name="theme-color" content="#0A0E1A">
-<link rel="canonical" href="/">
+<!-- DOMAIN: replace every https://example.com below (and in sitemap.xml) with
+     your real domain. Link scrapers cannot resolve relative URLs. -->
+<link rel="canonical" href="https://example.com/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23E0203C'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='40' font-weight='bold' text-anchor='middle' fill='white'%3E%C2%A3%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="https://example.com/apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Bank of England Governor">
 <meta property="og:title" content="Bank of England Governor">
 <meta property="og:description" content="Twenty quarters. Two targets. Set UK Bank Rate, survive the shocks, keep your job.">
-<meta property="og:image" content="share.png">
+<meta property="og:url" content="https://example.com/">
+<meta property="og:image" content="https://example.com/share.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Bank of England Governor">
 <meta name="twitter:description" content="Can you keep inflation and unemployment on target for five years?">
-<meta name="twitter:image" content="share.png">
+<meta name="twitter:image" content="https://example.com/share.png">
 <!--
   Advertising: fill in the ADS object near the top of the script below with your
   AdSense publisher ID and the three slot IDs. Nothing external loads until you do.
@@ -143,6 +148,7 @@
   input[type=range]::-moz-range-thumb{width:28px;height:28px;border-radius:50%;
     background:#fff;border:4px solid var(--cta);cursor:pointer}
   .hint{font-size:11px;color:var(--muted);min-height:16px;margin:3px 2px 7px}
+  .hint.coach{color:var(--infl)}
   .go{width:100%;min-height:56px;border:0;border-radius:16px;background:var(--cta);color:#fff;
     font:inherit;font-size:17px;font-weight:900;letter-spacing:.2px;cursor:pointer;
     touch-action:manipulation;box-shadow:0 6px 0 #8E0F24}
@@ -197,6 +203,13 @@
   .mchip{width:34px;height:34px;border-radius:11px;background:var(--raised);border:1px solid var(--line);
     display:grid;place-items:center;font-size:17px;filter:grayscale(1);opacity:.3}
   .mchip.got{filter:none;opacity:1;border-color:rgba(61,220,151,.5);background:rgba(61,220,151,.12)}
+  .diag{background:var(--raised);border-left:3px solid var(--infl);border-radius:0 12px 12px 0;
+    padding:11px 13px;margin-bottom:10px}
+  .diag b{display:block;font-size:14px;margin-bottom:3px}
+  .diag span{font-size:12.5px;color:var(--muted);line-height:1.45}
+  .nm.quiet{background:var(--raised);border-color:var(--line);animation:none}
+  .nm.quiet .tag{display:none}
+  #best{margin-bottom:10px}
   .newmedals{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
   .nm{display:flex;align-items:center;gap:10px;background:rgba(61,220,151,.12);
     border:1px solid rgba(61,220,151,.5);border-radius:13px;padding:9px 11px;animation:pulse .8s ease-out}
@@ -242,6 +255,10 @@
   .guide span span,.guide li>span:last-child{font-size:12px;color:var(--muted);line-height:1.4}
 
   /* ---- Ads ---- */
+  .adwrap{margin-bottom:28px}
+  .adlabel{font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:#4C5875;
+    margin-bottom:5px;text-align:center}
+  .dock{border-top:1px solid var(--line)}
   .ad-slot.live{border:0;padding:0;display:block}
   .ad-slot{min-height:64px;border:1px dashed var(--line);border-radius:14px;display:grid;place-items:center;
     color:#4C5875;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;padding:8px}
@@ -352,8 +369,13 @@
       <span id="voteText">Eight other members advise. The decision is yours.</span>
     </div>
 
-    <!-- ===== AD SLOT (banner) ===== -->
-    <div class="ad-slot" id="adTop" data-ad="banner">Advertisement</div>
+    <!-- ===== AD SLOT (banner) =====
+         Kept well clear of the dock button: an advert adjacent to the primary
+         action invites accidental clicks and breaches AdSense placement policy. -->
+    <div class="adwrap">
+      <div class="adlabel">Advertisement</div>
+      <div class="ad-slot" id="adTop" data-ad="banner"></div>
+    </div>
 
     <div class="dock">
       <div class="rateline"><span class="l">Bank Rate</span><span class="v" id="rateVal">3.75%</span></div>
@@ -373,6 +395,8 @@
       <div class="storykey"><span><i class="sw" style="background:var(--infl)"></i>Inflation</span>
         <span><i class="sw" style="background:var(--unemp)"></i>Unemployment</span>
         <span class="bandkey">Target band</span></div>
+      <div class="diag" id="diag"></div>
+      <div class="nm hide" id="best"></div>
       <div class="newmedals hide" id="newMedals"></div>
       <div class="medal" id="medal">🎖️</div>
       <h2 id="rating">—</h2>
@@ -412,6 +436,25 @@
   // the same containers become live AdSense units. Their heights are already
   // reserved in CSS, so filling them in causes no layout shift.
   var ADS = { client: "", slots: { intro: "", banner: "", results: "" } };
+
+  // Google Analytics 4. Empty id = nothing loads and no cookies are set.
+  // Filling it in also obliges the consent banner and the privacy policy text.
+  var GA = { id: "" };
+  function initGA(){
+    if (!GA.id) return;
+    var sc = document.createElement("script");
+    sc.async = true;
+    sc.src = "https://www.googletagmanager.com/gtag/js?id=" + GA.id;
+    document.head.appendChild(sc);
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function(){ window.dataLayer.push(arguments); };
+    window.gtag("js", new Date());
+    window.gtag("config", GA.id);
+  }
+  function track(name, params){
+    if (!GA.id || !window.gtag) return;
+    try { window.gtag("event", name, params || {}); } catch(e){}
+  }
 
   function initAds(){
     if (!ADS.client) return;                       // placeholders stay as they are
@@ -633,7 +676,7 @@
       shocksHit:0, majorHits:0, crisisHits:0,
       shockCarry:0, dissents:0, peakInfl:START.inflation, crisisName:"",
       minInfl:START.inflation, maxRate:START.rate, bandHits:0,
-      hist:[{i:START.inflation,u:START.unemployment,tier:0,emoji:""}],
+      hist:[{i:START.inflation,u:START.unemployment,tier:0,emoji:"",rate:START.rate,neutral:GLOBAL_RATE+NEUTRAL_LEAD}],
       dots:[], over:false
     };
   }
@@ -742,7 +785,7 @@
     if (!S.crisisFired && S.infl >= CRISIS_CPI) { S.crisisFired = true; S.crisisPenalty = 8; S.score -= 8; }
 
     S.dots.push(ok ? "hit" : "miss");
-    S.hist.push({i:S.infl, u:S.unemp, tier:tier, emoji:tier?ev[0]:""});
+    S.hist.push({i:S.infl, u:S.unemp, tier:tier, emoji:tier?ev[0]:"", rate:S.lagged, neutral:neutralRate()});
     return { ev:ev, tier:tier, ok:ok, delta:Math.round(S.score - before) };
   }
 
@@ -973,11 +1016,24 @@
 
     $("go").textContent = (S.q === QUARTERS-1) ? "FINAL QUARTER" : "SET RATE & ADVANCE";
   }
+  // Three prompts, first term only, teaching the loop without softening it.
+  var COACH = [
+    "Whatever you set now takes a quarter to bite. Decide early.",
+    "Watch the Committee line — it hints where rates should be.",
+    "You need inflation AND unemployment in band in the same quarter."
+  ];
   function updateRate(){
     $("rateVal").textContent = pct(S.rate);
     $("down").disabled = S.rate <= 0;
     $("up").disabled = S.rate >= RATE_MAX;
     var d = S.rate - S.lagged;
+    var coaching = career.games === 0 && S.q < COACH.length;
+    if (coaching && Math.abs(d) < 0.001){
+      $("hint").textContent = COACH[S.q];
+      $("hint").className = "hint coach";
+      return;
+    }
+    $("hint").className = "hint";
     $("hint").textContent = Math.abs(d) < 0.001 ? "Holding at " + pct(S.rate)
       : (d > 0 ? "Hike of " + d.toFixed(2) + "pp — bites next quarter"
                : "Cut of " + Math.abs(d).toFixed(2) + "pp — bites next quarter");
@@ -997,7 +1053,8 @@
     $("career").classList.remove("hide");
     $("cstats").innerHTML = "Terms served <b>" + career.games + "</b> · Best <b>"
       + (career.bestScore === null ? "—" : career.bestScore) + "</b> · Medals <b>"
-      + career.medals.length + "/" + MEDALS.length + "</b>";
+      + career.medals.length + "/" + MEDALS.length + "</b>"
+      + (career.bestScore === null ? "" : ' · <b style="color:var(--good)">beat it</b>');
     $("mrow").innerHTML = MEDALS.map(function(m){
       var got = career.medals.indexOf(m.id) > -1;
       return '<span class="mchip' + (got ? " got" : "") + '" title="' + m.name + " — " + m.hint
@@ -1005,9 +1062,38 @@
     }).join("");
   }
 
+  // ---------- Diagnosis ----------
+  // A score tells a player they lost. This tells them why, which is what makes
+  // them press Play Again.
+  function diagnose(){
+    var h = S.hist.slice(1), n = h.length;
+    var hotSlow = 0, coldTight = 0, deflation = 0, breaches = 0;
+    for (var i=0;i<n;i++){
+      var p = h[i];
+      if (p.i > INFL_BAND.hi){ breaches++; if (p.rate <= p.neutral + 0.5) hotSlow++; }
+      if (p.u > UNEMP_BAND.hi){ breaches++; if (p.rate >= p.neutral + 1.0) coldTight++; }
+      if (p.i < 0) deflation++;
+    }
+    if (deflation >= 3) return ["Fell into deflation",
+      "Below zero, prices dragged demand and jobs down with them. Cut earlier and harder when inflation heads under 1%."];
+    if (hotSlow >= 5) return ["Too slow to react",
+      "Inflation ran hot for " + hotSlow + " quarters while Bank Rate sat near neutral. Rate changes take a quarter to bite — move before the data forces you to."];
+    if (coldTight >= 5) return ["Over-tightened",
+      "You held rates well above neutral for " + coldTight + " quarters and unemployment paid for it. Once inflation is falling, start easing back."];
+    if (breaches <= 3) return ["A steady hand",
+      "You kept both targets in sight for almost the whole term. Now try it against a worse hand."];
+    if (S.crisisHits && !inBand(S.infl, INFL_BAND)) return ["Caught by the crisis",
+      "An energy shock of that size takes years to clear. Tighten hard and early, and accept the jobs cost while you do."];
+    if (S.dissents >= 12) return ["You ignored the Committee",
+      "The MPC split with you " + S.dissents + " times. They price off the neutral rate you cannot see — when eight members want it higher, they usually have a point."];
+    return ["A term of two halves",
+      "Neither target ran away from you, but neither settled either. Smaller, earlier moves tend to beat large corrections."];
+  }
+
   // ---------- Results ----------
   function finish(){
     S.over = true;
+    var prevBest = career.bestScore;    // captured before this term is banked
     var bonus = (S.unemp < START.unemployment) ? 5 : 0;
     S.score += bonus;
 
@@ -1043,6 +1129,18 @@
     else { medal="💥"; rating="Resign in disgrace"; say="The letters to the Chancellor piled up. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
     $("medal").textContent = medal; $("rating").textContent = rating; $("say").textContent = say;
 
+    var dg = diagnose();
+    $("diag").innerHTML = '<b>' + dg[0] + '</b><span>' + dg[1] + '</span>';
+
+    var beat = prevBest !== null && S.score > prevBest;
+    if (beat) $("best").innerHTML = '<span class="e">🏆</span><span><b>New personal best</b>'
+      + '<span>' + Math.round(S.score) + ' points, beating ' + prevBest + '.</span></span>';
+    else if (prevBest !== null) $("best").innerHTML = '<span class="e">🎯</span><span><b>Your best is '
+      + prevBest + '</b><span>' + (Math.round(S.score) === prevBest ? "You matched it."
+        : "This term: " + Math.round(S.score) + ". " + (prevBest - Math.round(S.score)) + " short.") + '</span></span>';
+    $("best").classList.toggle("hide", prevBest === null);
+    $("best").className = "nm" + (prevBest === null ? " hide" : (beat ? "" : " quiet"));
+
     $("qName").textContent = "Term complete";
     $("qNum").textContent = QUARTERS + " quarters served";
     // Career: a term is only banked once, at the end.
@@ -1071,6 +1169,9 @@
     if (career.bestScore !== null)
       lines.push(["Your best score", String(career.bestScore), S.score >= career.bestScore]);
 
+    track("term_complete", { score: Math.round(S.score), rating: rating,
+                             crises: S.crisisHits, quarters_on_target: S.bandHits });
+    earned.forEach(function(m){ track("medal_earned", { medal: m.id }); });
     buildShare(medal, rating, earned);
     $("game").classList.add("hide");
     $("end").classList.remove("hide");
@@ -1108,6 +1209,7 @@
 
   function shareDone(msg){
     SFX.pop();
+    track("share_result", { score: Math.round(S.score) });
     var btn = $("share");
     btn.className = "go share done"; btn.textContent = msg;
     setTimeout(function(){ btn.className = "go share"; btn.textContent = "SHARE RESULT"; }, 2200);
@@ -1287,6 +1389,7 @@
 
   $("start").addEventListener("click", function(){
     unlockAudio();
+    track("term_start", { term: career.games + 1 });
     $("intro").classList.add("hide");
     $("hud").classList.remove("hide");
     $("dots").classList.remove("hide");
@@ -1296,6 +1399,7 @@
   window.addEventListener("resize", render);
   restart();
   initAds();
+  initGA();
 })();
 </script>
 </body>
