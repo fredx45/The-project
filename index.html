@@ -196,12 +196,12 @@
     <div class="event" id="event" aria-live="polite" style="margin-bottom:10px">
       <span class="em" id="evEmoji">🏦</span>
       <span><span class="h" id="evTitle">Your first meeting</span>
-      <span class="p" id="evText">Inflation is 2.6% and drifting. Set Bank Rate and put it to the vote.</span></span>
+      <span class="p" id="evText">Inflation is 2.6% and drifting. Set Bank Rate — the Committee advises, you decide.</span></span>
     </div>
 
     <div class="vote" id="vote" aria-live="polite" style="margin-bottom:10px">
       <span class="tally" id="voteTally">MPC</span>
-      <span id="voteText">Eight other members vote on whatever you propose.</span>
+      <span id="voteText">Eight other members advise. The decision is yours.</span>
     </div>
 
     <!-- ===== AD SLOT (banner) ===== -->
@@ -218,11 +218,11 @@
       <div class="rateline"><span class="l">Bank Rate</span><span class="v" id="rateVal">3.75%</span></div>
       <div class="row">
         <button class="step" id="down" aria-label="Cut by 0.25">−</button>
-        <input type="range" id="rate" min="0" max="5" step="0.25" value="3.75" aria-label="Bank Rate">
+        <input type="range" id="rate" min="0" max="15" step="0.25" value="3.75" aria-label="Bank Rate">
         <button class="step" id="up" aria-label="Raise by 0.25">+</button>
       </div>
       <div class="hint" id="hint">Holding at 3.75%</div>
-      <button class="go" id="go">PUT IT TO THE VOTE</button>
+      <button class="go" id="go">SET RATE &amp; ADVANCE</button>
     </div>
   </div>
 
@@ -262,6 +262,7 @@
   var GLOBAL_RATE = 3.25;                 // hidden: world policy rate at the start
   var NEUTRAL_LEAD = -0.25;               // hidden: UK neutral sits below the world rate
   var MPC_BIAS = [-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75];
+  var RATE_MAX = 15;                      // the Governor may go full Volcker
   var MAX_QUARTER_PENALTY = 6;            // a crisis quarter hurts, but never ends the game outright
 
   var QNAMES = (function(){
@@ -308,7 +309,7 @@
       score:0, bandPoints:0, missPoints:0, fightPoints:0, streak:0, bestStreak:0,
       crisisFired:false, crisisPenalty:0,
       shocksHit:0, majorHits:0, crisisHits:0,
-      shockCarry:0, outvotes:0, peakInfl:START.inflation,
+      shockCarry:0, dissents:0, peakInfl:START.inflation,
       hist:[{i:START.inflation,u:START.unemployment}],
       dots:[], over:false
     };
@@ -327,16 +328,21 @@
   // Hidden from the player, the committee prices off the true neutral rate, so
   // losing votes is the tell that your rate has drifted away from it.
   function mpcVote(proposal){
-    var votes = [proposal], forV = 1;
+    var forV = 1, higher = 0, lower = 0, prefs = [];
     for (var i=0;i<MPC_BIAS.length;i++){
-      var pref = clamp(neutralRate() + 1.3*(S.infl - 2.0) - 0.7*(S.unemp - 4.4) + MPC_BIAS[i], 0, 5);
+      var pref = clamp(neutralRate() + 1.3*(S.infl - 2.0) - 0.7*(S.unemp - 4.4) + MPC_BIAS[i], 0, RATE_MAX);
       pref = Math.round(pref*4)/4;
-      if (Math.abs(pref - proposal) <= 0.5){ forV++; votes.push(proposal); }
-      else votes.push(pref);
+      prefs.push(pref);
+      if (Math.abs(pref - proposal) <= 0.5) forV++;
+      else if (pref > proposal) higher++;
+      else lower++;
     }
-    if (forV >= 5) return { rate:proposal, forV:forV, against:9-forV, carried:true };
-    votes.sort(function(a,b){ return a-b; });
-    return { rate:votes[4], forV:forV, against:9-forV, carried:false };
+    prefs.sort(function(a,b){ return a-b; });
+    // How far off the committee thinks you are — the player's only read on where
+    // neutral has drifted to, so it has to be proportional, not just directional.
+    var miss = Math.abs(prefs[4] - proposal);
+    return { forV:forV, against:9-forV, higher:higher, lower:lower,
+             far: miss > 2.0 ? 2 : (miss > 0.9 ? 1 : 0) };
   }
 
   // ---------- Economy ----------
@@ -349,9 +355,9 @@
     S.global = clamp(S.global + S.globalDrift, 1.5, 4.75);
 
     var roll = Math.random(), shock = 0, ev, tier = 0;
-    if (roll < 0.022)      { tier = 3; ev = CRISIS[(Math.random()*CRISIS.length)|0]; shock = 3.60; S.crisisHits++; }
-    else if (roll < 0.090) { tier = 2; ev = MAJOR[(Math.random()*MAJOR.length)|0];  shock = 0.75; S.majorHits++; }
-    else if (roll < 0.230) { tier = 1; ev = MINOR[(Math.random()*MINOR.length)|0];  shock = 0.32; }
+    if (roll < 0.018)      { tier = 3; ev = CRISIS[(Math.random()*CRISIS.length)|0]; shock = 3.60; S.crisisHits++; }
+    else if (roll < 0.065) { tier = 2; ev = MAJOR[(Math.random()*MAJOR.length)|0];  shock = 0.75; S.majorHits++; }
+    else if (roll < 0.175) { tier = 1; ev = MINOR[(Math.random()*MINOR.length)|0];  shock = 0.32; }
     else                   { ev = CALM[(Math.random()*CALM.length)|0]; }
     if (tier) S.shocksHit++;
 
@@ -361,8 +367,8 @@
     // Hidden sterling channel: sit away from world rates and imported prices move.
     var importPush = clamp(-0.22 * (S.lagged - S.global), -0.5, 0.5);
 
-    S.infl  = clamp(S.infl  + (-0.50*gap) - 0.26*(S.infl - S.exp) + shock + carry + importPush + noise, -1, 15);
-    S.unemp = clamp(S.unemp + ( 0.17*gap) - 0.12*(S.unemp - 4.4) + 0.16*carry, 2.5, 12);
+    S.infl  = clamp(S.infl  + (-0.50*gap) - 0.30*(S.infl - S.exp) + shock + carry + importPush + noise, -1, 15);
+    S.unemp = clamp(S.unemp + ( 0.13*gap) - 0.16*(S.unemp - 4.4) + 0.16*carry, 2.5, 12);
     if (S.infl > S.peakInfl) S.peakInfl = S.infl;
 
     S.exp += 0.10*(S.infl - S.exp);
@@ -455,12 +461,12 @@
     for (var i=0;i<QUARTERS;i++) h += '<span class="dot '+(S.dots[i] || (i===S.q?"now":""))+'"></span>';
     $("dots").innerHTML = h;
 
-    $("go").textContent = (S.q === QUARTERS-1) ? "FINAL VOTE" : "PUT IT TO THE VOTE";
+    $("go").textContent = (S.q === QUARTERS-1) ? "FINAL QUARTER" : "SET RATE & ADVANCE";
   }
   function updateRate(){
     $("rateVal").textContent = pct(S.rate);
     $("down").disabled = S.rate <= 0;
-    $("up").disabled = S.rate >= 5;
+    $("up").disabled = S.rate >= RATE_MAX;
     var d = S.rate - S.lagged;
     $("hint").textContent = Math.abs(d) < 0.001 ? "Holding at " + pct(S.rate)
       : (d > 0 ? "Hike of " + d.toFixed(2) + "pp — bites next quarter"
@@ -483,7 +489,7 @@
 
     // Graded against a par that moves with the hand you were dealt: a term with
     // a 1974-scale energy crisis in it cannot be judged against a calm one.
-    var par = Math.max(28 - 45*S.crisisHits - 4*S.majorHits, -95);
+    var par = Math.max(20 - 40*S.crisisHits - 4*S.majorHits, -90);
 
     var lines = [
       ["Quarters on target", "+" + S.bandPoints, true],
@@ -493,8 +499,8 @@
       ["Getting inflation back down", S.fightPoints ? "+" + S.fightPoints : "0", S.fightPoints ? true : null],
       ["Shocks weathered", S.shocksHit + (S.crisisHits ? " · " + S.crisisHits + " crisis" : ""), null]
     ];
-    if (S.outvotes) lines.push(["Outvoted by the Committee", String(S.outvotes) + "×", null]);
-    if (S.crisisHits) lines.push(["Par for a term this rough", String(Math.round(par)), null]);
+    if (S.dissents) lines.push(["Meetings with the Committee split", String(S.dissents) + "×", null]);
+    lines.push([S.crisisHits ? "Par for a term this rough" : "Par for the term", String(Math.round(par)), null]);
     if (S.crisisPenalty) lines.push(["Credibility crisis", "−8", false]);
     lines.push([bonus ? "Unemployment improving" : "Unemployment not improved", bonus ? "+5" : "0", !!bonus]);
 
@@ -505,9 +511,9 @@
 
     var s = S.score;
     var medal, rating, say;
-    if (s >= 30){ medal="🎖️"; rating="Reappointed"; say="A second term, and the Chancellor's thanks. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
-    else if (s >= par){ medal="🏅"; rating="Reappointed on the record";
-      say="You were handed a crisis and still beat par ("+Math.round(par)+"). CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
+    if (s >= 34){ medal="🎖️"; rating="A great Governor"; say="They will name a wing after you. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
+    else if (s >= par){ medal="🏅"; rating="Second term secured";
+      say="You beat par for a term like this ("+Math.round(par)+"). CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
     else if (s >= par - 22){ medal="🤝"; rating="Term served"; say="Credibility intact, if not burnished. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
     else if (s >= par - 55){ medal="📉"; rating="Called before the Committee"; say="The Treasury Select Committee has questions. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
     else { medal="💥"; rating="Resign in disgrace"; say="The letters to the Chancellor piled up. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
@@ -525,12 +531,22 @@
   var slider = $("rate");
   slider.addEventListener("input", function(){ S.rate = parseFloat(slider.value); updateRate(); });
   function nudge(d){
-    S.rate = clamp(Math.round((S.rate + d)*4)/4, 0, 5);
+    S.rate = clamp(Math.round((S.rate + d)*4)/4, 0, RATE_MAX);
     slider.value = String(S.rate); updateRate();
     if (navigator.vibrate) navigator.vibrate(8);
   }
-  $("down").addEventListener("click", function(){ nudge(-0.25); });
-  $("up").addEventListener("click", function(){ nudge(0.25); });
+  function holdable(id, d){
+    var el = $(id), t = null, iv = null;
+    var stop = function(){ clearTimeout(t); clearInterval(iv); t = iv = null; };
+    el.addEventListener("click", function(){ nudge(d); });
+    el.addEventListener("pointerdown", function(){
+      stop();
+      t = setTimeout(function(){ iv = setInterval(function(){ nudge(d); }, 90); }, 400);
+    });
+    ["pointerup","pointerleave","pointercancel"].forEach(function(e){ el.addEventListener(e, stop); });
+  }
+  holdable("down", -0.25);
+  holdable("up", 0.25);
 
   function setEvent(ev, tier, crisisNow){
     var el = $("event");
@@ -552,15 +568,20 @@
     if (S.over) return;
     var proposal = S.rate, wasCrisis = S.crisisFired;
     var v = mpcVote(proposal);
-    if (!v.carried) S.outvotes++;
-    S.rate = v.rate; slider.value = String(S.rate);
+    if (v.against >= 4) S.dissents++;
 
-    var out = step(v.rate);
+    var out = step(proposal);
     var vote = $("vote");
-    vote.className = "vote " + (v.carried ? "won" : "lost");
+    vote.className = "vote " + (v.against === 0 ? "won" : (v.against >= 4 ? "lost" : ""));
     $("voteTally").textContent = v.forV + "–" + v.against;
-    $("voteText").textContent = v.carried ? "Carried. Bank Rate " + pct(proposal) + "."
-                                          : "Outvoted. The Committee sets " + pct(v.rate) + ".";
+    if (v.against === 0) $("voteText").textContent = "Unanimous. Bank Rate " + pct(proposal) + ".";
+    else if (v.higher > v.lower)
+      $("voteText").textContent = v.against + (v.against===1?" member wanted ":" members wanted ")
+        + (v.far === 2 ? "it far higher." : (v.far === 1 ? "it clearly higher." : "it a little higher."));
+    else if (v.lower > v.higher)
+      $("voteText").textContent = v.against + (v.against===1?" member wanted ":" members wanted ")
+        + (v.far === 2 ? "it far lower." : (v.far === 1 ? "it clearly lower." : "it a little lower."));
+    else $("voteText").textContent = "Carried, with " + v.against + " dissenting.";
     setEvent(out.ev, out.tier, !wasCrisis && S.crisisFired);
     render();
     popScore(out.delta);
@@ -573,10 +594,10 @@
     slider.value = String(S.rate);
     $("vote").className = "vote";
     $("voteTally").textContent = "MPC";
-    $("voteText").textContent = "Eight other members vote on whatever you propose.";
+    $("voteText").textContent = "Eight other members advise. The decision is yours.";
     $("evEmoji").textContent = "🏦";
     $("evTitle").textContent = "Your first meeting";
-    $("evText").textContent = "Inflation is 2.6% and drifting. Set Bank Rate and put it to the vote.";
+    $("evText").textContent = "Inflation is 2.6% and drifting. Set Bank Rate — the Committee advises, you decide.";
     $("event").className = "event";
     updateRate(); render();
     window.scrollTo({top:0});
