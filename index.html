@@ -317,6 +317,7 @@
     </div>
     <div class="streak hide" id="streak" aria-live="polite"><b id="streakN">×2</b><i id="streakP">+2</i></div>
     <div class="score"><b id="score">0</b><i>pts</i></div>
+    <button class="icon-btn" id="mute" title="Sound on/off" aria-label="Sound on/off">🔊</button>
     <button class="icon-btn" id="restart" title="Restart" aria-label="Restart">↻</button>
   </div>
 
@@ -483,11 +484,107 @@
     ["🏦","Orderly meeting","Nothing new on the desk. The Committee awaits your proposal."]
   ];
 
+  // ---------- Sound ----------
+  // Everything is synthesised through the Web Audio API: no files, no download
+  // cost, and nothing starts until the player's first tap unlocks the context.
+  var AC = null, master = null, soundOn = true;
+  function audio(){
+    if (AC) return AC;
+    var Ctor = window.AudioContext || window.webkitAudioContext;
+    if (!Ctor) return null;
+    AC = new Ctor();
+    master = AC.createGain();
+    master.gain.value = 0.22;
+    master.connect(AC.destination);
+    return AC;
+  }
+  function unlockAudio(){
+    var c = audio();
+    if (c && c.state === "suspended") c.resume();
+  }
+  // A single shaped voice: pitch may glide, and the envelope always fades out
+  // so nothing clicks.
+  function tone(o){
+    if (!soundOn) return;
+    var c = audio(); if (!c) return;
+    var t = c.currentTime + (o.delay || 0);
+    var osc = c.createOscillator(), g = c.createGain();
+    osc.type = o.type || "sine";
+    osc.frequency.setValueAtTime(o.from, t);
+    if (o.to) osc.frequency.exponentialRampToValueAtTime(Math.max(o.to, 1), t + o.dur);
+    var peak = (o.gain === undefined ? 0.5 : o.gain);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + o.dur);
+    osc.connect(g); g.connect(master);
+    osc.start(t); osc.stop(t + o.dur + 0.02);
+  }
+  function noise(o){
+    if (!soundOn) return;
+    var c = audio(); if (!c) return;
+    var t = c.currentTime + (o.delay || 0), len = Math.floor(c.sampleRate * o.dur);
+    var buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+    for (var i=0;i<len;i++) d[i] = (Math.random()*2 - 1) * (1 - i/len);
+    var src = c.createBufferSource(); src.buffer = buf;
+    var f = c.createBiquadFilter(); f.type = o.type || "lowpass"; f.frequency.value = o.freq || 700;
+    var g = c.createGain(); g.gain.value = (o.gain === undefined ? 0.35 : o.gain);
+    src.connect(f); f.connect(g); g.connect(master);
+    src.start(t);
+  }
+  function buzz(pattern){ if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e){} } }
+
+  var SFX = {
+    tick:    function(){ tone({from:520, dur:0.05, type:"square", gain:0.12}); buzz(6); },
+    commit:  function(){ tone({from:180, to:120, dur:0.12, type:"triangle", gain:0.35}); buzz(12); },
+    // The on-target chime climbs with the streak — the core dopamine hit.
+    onTarget:function(streak){
+      var step = Math.min(streak, 8);
+      var base = 523.25 * Math.pow(1.0595, step * 2);   // up two semitones a quarter
+      tone({from:base, dur:0.10, type:"sine", gain:0.4});
+      tone({from:base*1.5, dur:0.16, type:"sine", gain:0.3, delay:0.07});
+      buzz(streak >= 4 ? [10,40,14] : 10);
+    },
+    miss:    function(){ tone({from:190, to:96, dur:0.26, type:"sawtooth", gain:0.22}); buzz([18,50,18]); },
+    streakUp:function(){
+      [0,0.07,0.14].forEach(function(d,i){
+        tone({from:659.25*Math.pow(1.26,i), dur:0.13, type:"triangle", gain:0.32, delay:d});
+      });
+      buzz([12,30,12,30,18]);
+    },
+    minor:   function(){ noise({dur:0.30, freq:900, gain:0.20}); buzz(20); },
+    major:   function(){
+      noise({dur:0.45, freq:600, gain:0.30});
+      tone({from:330, to:180, dur:0.42, type:"square", gain:0.30});
+      buzz([25,45,25]);
+    },
+    crisis:  function(){
+      // Klaxon: two falling blasts over a rumble.
+      tone({from:440, to:180, dur:0.55, type:"sawtooth", gain:0.45});
+      tone({from:440, to:180, dur:0.55, type:"sawtooth", gain:0.45, delay:0.45});
+      tone({from:70,  to:40,  dur:1.10, type:"sine",     gain:0.50});
+      noise({dur:0.9, freq:340, gain:0.35});
+      buzz([60,60,60,60,140]);
+    },
+    letter:  function(){ tone({from:300, to:110, dur:0.7, type:"triangle", gain:0.4}); buzz([40,70,40]); },
+    medal:   function(){
+      [523.25,659.25,783.99,1046.5].forEach(function(f,i){
+        tone({from:f, dur:0.22, type:"triangle", gain:0.34, delay:i*0.085});
+      });
+      buzz([14,50,14,50,28]);
+    },
+    finish:  function(good){
+      var notes = good ? [523.25,659.25,783.99,1046.5] : [392,349.23,311.13,261.63];
+      notes.forEach(function(f,i){ tone({from:f, dur:0.34, type:"sine", gain:0.32, delay:i*0.13}); });
+      buzz(good ? [20,60,20,60,40] : [70,80,120]);
+    },
+    pop:     function(){ tone({from:880, to:1320, dur:0.10, type:"sine", gain:0.3}); buzz(8); }
+  };
+
   // ---------- Career (persisted) ----------
   // Everything here is best-effort: Safari private mode throws on setItem, and
   // the game has to stay fully playable when storage is unavailable.
   var STORE = "boeGov.v1";
-  function freshCareer(){ return { games:0, bestScore:null, bestStreak:0, crisesSurvived:0, medals:[] }; }
+  function freshCareer(){ return { games:0, bestScore:null, bestStreak:0, crisesSurvived:0, medals:[], sound:true }; }
   function loadCareer(){
     try {
       var raw = localStorage.getItem(STORE);
@@ -968,7 +1065,7 @@
            + '<span>'+m.hint+'</span></span><span class="tag">NEW</span></div>';
     }).join("");
     $("newMedals").classList.toggle("hide", earned.length === 0);
-    if (earned.length && navigator.vibrate) navigator.vibrate([12,60,12,60,20]);
+    if (earned.length) setTimeout(SFX.medal, 900);
 
     lines.push(["Terms served", String(career.games), null]);
     if (career.bestScore !== null)
@@ -978,6 +1075,7 @@
     $("game").classList.add("hide");
     $("end").classList.remove("hide");
     playStory();                       // needs a laid-out canvas, so after unhide
+    SFX.finish(S.score >= par);
     rollScore(S.score);   // the end-of-term bonus lands after the last render
     window.scrollTo({top:0, behavior:"smooth"});
   }
@@ -1009,6 +1107,7 @@
   }
 
   function shareDone(msg){
+    SFX.pop();
     var btn = $("share");
     btn.className = "go share done"; btn.textContent = msg;
     setTimeout(function(){ btn.className = "go share"; btn.textContent = "SHARE RESULT"; }, 2200);
@@ -1045,7 +1144,7 @@
   function nudge(d){
     S.rate = clamp(Math.round((S.rate + d)*4)/4, 0, RATE_MAX);
     slider.value = String(S.rate); updateRate();
-    if (navigator.vibrate) navigator.vibrate(8);
+    SFX.tick();
   }
   function holdable(id, d){
     var el = $(id), t = null, iv = null;
@@ -1107,6 +1206,7 @@
 
   $("go").addEventListener("click", function(){
     if (S.over) return;
+    SFX.commit();
     var proposal = S.rate, wasCrisis = S.crisisFired;
     var v = mpcVote(proposal);
     if (v.against >= 4) S.dissents++;
@@ -1133,11 +1233,16 @@
     render();
     renderStreak(!out.ok);
     popScore(out.delta);
-    if (navigator.vibrate){
-      if (out.tier === 3) navigator.vibrate([30,50,30,50,60]);
-      else if (out.tier === 2) navigator.vibrate([15,45,15]);
-      else if (out.ok && S.streak >= 4) navigator.vibrate(10);
-    }
+    // Sound follows the drama: the shock first, then how the quarter scored.
+    if (out.tier === 3) SFX.crisis();
+    else if (!wasCrisis && S.crisisFired) SFX.letter();
+    else if (out.tier === 2) SFX.major();
+    else if (out.tier === 1) SFX.minor();
+
+    if (out.ok){
+      if (S.streak >= 3 && S.streak % 3 === 0) SFX.streakUp();
+      else SFX.onTarget(S.streak);
+    } else if (out.tier === 0) SFX.miss();
     if (S.q >= QUARTERS) finish(); else updateRate();
   });
 
@@ -1170,7 +1275,18 @@
   });
   $("again").addEventListener("click", restart);
 
+  function paintMute(){ $("mute").textContent = soundOn ? "🔊" : "🔇"; }
+  soundOn = career.sound !== false;
+  paintMute();
+  $("mute").addEventListener("click", function(){
+    soundOn = !soundOn;
+    career.sound = soundOn; saveCareer();
+    paintMute();
+    if (soundOn){ unlockAudio(); SFX.pop(); }
+  });
+
   $("start").addEventListener("click", function(){
+    unlockAudio();
     $("intro").classList.add("hide");
     $("hud").classList.remove("hide");
     $("dots").classList.remove("hide");
