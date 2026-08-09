@@ -136,6 +136,32 @@
     touch-action:manipulation;box-shadow:0 6px 0 #8E0F24}
   .go:active{transform:translateY(3px);box-shadow:0 3px 0 #8E0F24}
 
+  /* ---- Crisis takeover ---- */
+  .alert{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px;
+    background:radial-gradient(120% 90% at 50% 40%,rgba(224,32,60,.42),rgba(10,14,26,.94) 70%);
+    backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);cursor:pointer;
+    animation:wash .18s ease-out}
+  @keyframes wash{from{opacity:0}to{opacity:1}}
+  .alertbox{max-width:420px;text-align:center;animation:slam .22s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes slam{from{transform:scale(1.45);opacity:0}to{transform:scale(1);opacity:1}}
+  .ribbon{display:inline-block;background:var(--bad);color:#25060A;font-size:11px;font-weight:900;
+    letter-spacing:2.5px;padding:5px 12px;border-radius:6px;margin-bottom:16px}
+  .ae{font-size:72px;line-height:1;margin-bottom:12px}
+  .alert h2{margin:0 0 10px;font-size:30px;line-height:1.05;font-weight:900;letter-spacing:-1px;
+    color:#fff;text-wrap:balance}
+  .alert p{margin:0;font-size:14px;line-height:1.5;color:#FFC9C2}
+  .tapon{margin-top:22px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#8A97AE}
+  .app.quake{animation:quake .45s cubic-bezier(.36,.07,.19,.97)}
+  @keyframes quake{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(4px,-2px)}
+    30%,50%,70%{transform:translate(-6px,2px)}40%,60%{transform:translate(6px,-1px)}}
+  .vignette{position:fixed;inset:0;z-index:40;pointer-events:none;
+    box-shadow:inset 0 0 90px 20px rgba(255,93,93,.55);animation:vig .55s ease-out forwards}
+  @keyframes vig{to{opacity:0}}
+  @media (prefers-reduced-motion:reduce){
+    .alertbox,.alert{animation:none}
+    .app.quake{animation:none}
+  }
+
   /* ---- Streak meter ---- */
   .streak{display:flex;align-items:baseline;gap:4px;flex:0 0 auto;border-radius:999px;
     padding:6px 12px;background:rgba(61,220,151,.14);border:1px solid rgba(61,220,151,.45);
@@ -366,6 +392,16 @@
     </div>
   </div>
 
+  <div class="alert hide" id="alert" role="alertdialog" aria-live="assertive" aria-label="Breaking news">
+    <div class="alertbox">
+      <div class="ribbon" id="alertRibbon">BREAKING</div>
+      <div class="ae" id="alertEmoji">💥</div>
+      <h2 id="alertTitle">WAR IN THE GULF</h2>
+      <p id="alertText"></p>
+      <div class="tapon">Tap to continue</div>
+    </div>
+  </div>
+
   <footer>A simplified model, for entertainment. Not economic advice, and not the MPC.</footer>
 </div>
 
@@ -384,6 +420,8 @@
   var NEUTRAL_LEAD = -0.25;               // hidden: UK neutral sits below the world rate
   var MPC_BIAS = [-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75];
   var RATE_MAX = 15;                      // the Governor may go full Volcker
+  var INFL_FLOOR = -5, INFL_CEIL = 25;    // UK CPI peaked at 24.2% in 1975
+  var UNEMP_FLOOR = 2, UNEMP_CEIL = 18;   // UK unemployment peaked near 11.9% in 1984
   var MAX_QUARTER_PENALTY = 6;            // a crisis quarter hurts, but never ends the game outright
 
   var QNAMES = (function(){
@@ -526,15 +564,33 @@
     // Hidden sterling channel: sit away from world rates and imported prices move.
     var importPush = clamp(-0.22 * (S.lagged - S.global), -0.5, 0.5);
 
-    S.infl  = clamp(S.infl  + (-0.50*gap) - 0.30*(S.infl - S.exp) + shock + carry + importPush + noise, -1, 15);
-    S.unemp = clamp(S.unemp + ( 0.13*gap) - 0.16*(S.unemp - 4.4) + 0.16*carry, 2.5, 12);
+    // Policy bites with diminishing returns: a punitive rate is powerful but
+    // cannot collapse prices in a single quarter, so a spiral takes years to
+    // break rather than one heroic meeting.
+    var squeeze = Math.tanh(gap / 4);
+    S.infl  = S.infl  + (-2.00*squeeze) - 0.30*(S.infl - S.exp) + shock + carry + importPush + noise;
+    S.unemp = S.unemp + ( 0.62*squeeze) - 0.16*(S.unemp - 4.4) + 0.16*carry;
+
+    // Deflation trap: falling prices raise real debts and postpone spending, so
+    // demand and jobs deteriorate and the fall feeds on itself.
+    if (S.infl < 0){
+      var d = -S.infl;
+      S.unemp += 0.22 * d;
+      S.infl  -= 0.06 * d;
+    }
+
+    S.infl  = clamp(S.infl,  INFL_FLOOR, INFL_CEIL);
+    S.unemp = clamp(S.unemp, UNEMP_FLOOR, UNEMP_CEIL);
     if (S.infl > S.peakInfl) S.peakInfl = S.infl;
     if (S.infl < S.minInfl) S.minInfl = S.infl;
     if (decided > S.maxRate) S.maxRate = decided;
 
-    S.exp += 0.10*(S.infl - S.exp);
+    // Wage-price spiral: the higher inflation runs, the faster the public stops
+    // believing the target and starts pricing off what they actually see.
+    var chase = 0.10 + 0.16 * clamp((S.infl - 5) / 10, 0, 1);
+    S.exp += chase * (S.infl - S.exp);
     if (inBand(S.infl, INFL_BAND)) S.exp += 0.20*(2.0 - S.exp);
-    S.exp = clamp(S.exp, 0.5, 9);
+    S.exp = clamp(S.exp, -2, 18);
 
     // A crisis leaves a tail measured in years, not quarters.
     S.shockCarry = tier === 3 ? 1.55 : (tier === 2 ? 0.22 : (tier === 1 ? 0.10 : carry * 0.72));
@@ -562,6 +618,18 @@
     S.dots.push(ok ? "hit" : "miss");
     S.hist.push({i:S.infl, u:S.unemp, tier:tier, emoji:tier?ev[0]:""});
     return { ev:ev, tier:tier, ok:ok, delta:Math.round(S.score - before) };
+  }
+
+  // Charts hold a comfortable default range and stretch only when the economy
+  // escapes it, so a crisis visibly zooms the axes out.
+  function scaleFor(key, baseLo, baseHi){
+    var lo = baseLo, hi = baseHi;
+    for (var i=0;i<S.hist.length;i++){
+      var v = S.hist[i][key];
+      if (v < lo) lo = Math.floor(v) - 1;
+      if (v > hi) hi = Math.ceil(v) + 1;
+    }
+    return { lo:lo, hi:hi };
   }
 
   // ---------- Canvas helpers ----------
@@ -628,7 +696,8 @@
     var d = fit($("story")); if (!d) return;
     var ctx = d.ctx, w = d.w, h = d.h;
     var padL = 24, padB = 16, padT = 20;
-    var lo = 0, hi = 15;
+    var ri = scaleFor("i", 0, 12), ru = scaleFor("u", 0, 12);
+    var lo = Math.min(ri.lo, ru.lo, 0), hi = Math.max(ri.hi, ru.hi, 12);
     var Y = function(v){ return padT + (1 - (clamp(v,lo,hi)-lo)/(hi-lo)) * (h-padT-padB); };
     var X = function(i){ return padL + (i/QUARTERS) * (w-padL-6); };
 
@@ -641,7 +710,10 @@
     ctx.strokeStyle = "rgba(42,53,73,.9)"; ctx.lineWidth = 1;
     ctx.fillStyle = "#8A97AE"; ctx.font = "9px -apple-system,system-ui,sans-serif";
     ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    [0,5,10,15].forEach(function(v){
+    var stepY = (hi - lo) > 22 ? 10 : 5;
+    var ticks = [];
+    for (var tv = Math.ceil(lo/stepY)*stepY; tv <= hi; tv += stepY) ticks.push(tv);
+    ticks.forEach(function(v){
       var y = Math.round(Y(v))+0.5;
       ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(w-6,y); ctx.stroke();
       ctx.fillText(v+"%", padL-5, y);
@@ -763,10 +835,11 @@
     $("tileU").className = "tile" + (uOut ? " out" : "");
     flashTile("tileI", iWasOut, iOut);
     flashTile("tileU", uWasOut, uOut);
-    strip("iZone","iMk", S.infl, INFL_BAND, 0, 14);
-    strip("uZone","uMk", S.unemp, UNEMP_BAND, 2, 10);
-    spark("sparkI","i","#4CC9F0",0,14,INFL_BAND);
-    spark("sparkU","u","#FFA45B",2,10,UNEMP_BAND);
+    var si = scaleFor("i", -2, 8), su = scaleFor("u", 2, 10);
+    strip("iZone","iMk", S.infl, INFL_BAND, si.lo, si.hi);
+    strip("uZone","uMk", S.unemp, UNEMP_BAND, su.lo, su.hi);
+    spark("sparkI","i","#4CC9F0",si.lo,si.hi,INFL_BAND);
+    spark("sparkU","u","#FFA45B",su.lo,su.hi,UNEMP_BAND);
 
     var h = "";
     for (var i=0;i<QUARTERS;i++) h += '<span class="dot '+(S.dots[i] || (i===S.q?"now":""))+'"></span>';
@@ -814,7 +887,7 @@
 
     // Graded against a par that moves with the hand you were dealt: a term with
     // a 1974-scale energy crisis in it cannot be judged against a calm one.
-    var par = Math.max(20 - 40*S.crisisHits - 4*S.majorHits, -90);
+    var par = Math.max(12 - 45*S.crisisHits - 4*S.majorHits, -95);
 
     var lines = [
       ["Quarters on target", "+" + S.bandPoints, true],
@@ -974,6 +1047,35 @@
     void el.offsetWidth;   // restart the animation on repeat events
   }
 
+  // A 1974-scale event should stop the game dead for a beat.
+  var alertTimer = null;
+  function closeAlert(){
+    if (alertTimer){ clearTimeout(alertTimer); alertTimer = null; }
+    $("alert").classList.add("hide");
+  }
+  function bigAlert(emoji, title, text, ribbon){
+    closeAlert();
+    $("alertEmoji").textContent = emoji;
+    $("alertTitle").textContent = title;
+    $("alertText").textContent = text;
+    $("alertRibbon").textContent = ribbon || "BREAKING";
+    $("alert").classList.remove("hide");
+    if (!REDUCED){
+      var app = document.querySelector(".app");
+      app.classList.remove("quake"); void app.offsetWidth; app.classList.add("quake");
+      setTimeout(function(){ app.classList.remove("quake"); }, 500);
+    }
+    alertTimer = setTimeout(closeAlert, 1600);
+  }
+  function vignette(){
+    if (REDUCED) return;
+    var v = document.createElement("div");
+    v.className = "vignette";
+    document.body.appendChild(v);
+    setTimeout(function(){ v.remove(); }, 600);
+  }
+  $("alert").addEventListener("click", closeAlert);
+
   $("go").addEventListener("click", function(){
     if (S.over) return;
     var proposal = S.rate, wasCrisis = S.crisisFired;
@@ -993,6 +1095,12 @@
         + (v.far === 2 ? "it far lower." : (v.far === 1 ? "it clearly lower." : "it a little lower."));
     else $("voteText").textContent = "Carried, with " + v.against + " dissenting.";
     setEvent(out.ev, out.tier, !wasCrisis && S.crisisFired);
+    if (out.tier === 3) bigAlert(out.ev[0], out.ev[1], out.ev[2], "BREAKING");
+    else if (!wasCrisis && S.crisisFired)
+      bigAlert("🚨", "LETTER TO THE CHANCELLOR",
+               "Inflation above 3.5%. The Governor must explain himself in writing. −8 points.",
+               "CREDIBILITY");
+    else if (out.tier === 2) vignette();
     render();
     renderStreak(!out.ok);
     popScore(out.delta);
@@ -1005,6 +1113,7 @@
   });
 
   function restart(){
+    closeAlert();
     reset();
     $("end").classList.add("hide");
     if ($("intro").classList.contains("hide")) $("game").classList.remove("hide");
