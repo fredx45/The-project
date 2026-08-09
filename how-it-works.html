@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>How the model works — Bank of England Governor</title>
+<meta name="description" content="The economics behind the game: the Phillips curve trade-off, policy lags, inflation expectations, the neutral rate, and how it is calibrated to August 2026 UK data.">
+<meta name="theme-color" content="#0A0E1A">
+<link rel="stylesheet" href="page.css">
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html"><span class="crest">£</span> Back to the game</a>
+
+  <h1>How the model works</h1>
+  <p class="lede">The game is a toy, but it is not arbitrary. Every relationship in it
+    corresponds to something the Bank of England actually worries about. Here is the whole
+    thing, with the numbers.</p>
+
+  <h2>What you are steering</h2>
+  <p>You set Bank Rate once a quarter for twenty quarters — five years, the length of a
+    Governor's term. Two numbers judge you: CPI inflation, which the Bank is legally
+    required to hold at 2%, and unemployment, where the target band in the game is a
+    simplification of the Bank's secondary objective to support growth and employment.</p>
+  <p>The game starts in August 2026 with Bank Rate at 3.75%, inflation at 2.6% and
+    unemployment at 4.9%. You score for quarters where <em>both</em> sit inside their bands —
+    inflation 1–3%, unemployment 3–5% — which is much harder than either alone, because the
+    two pull against each other.</p>
+
+  <h2>The Phillips curve trade-off</h2>
+  <p>The central tension is the one A.W. Phillips identified in 1958: push unemployment
+    down and inflation tends to rise, squeeze inflation out and unemployment rises. In the
+    game, raising Bank Rate above the neutral rate cools prices and costs jobs; cutting
+    below it does the reverse. There is no setting that improves both at once, only
+    settings that balance them.</p>
+  <p>The modern refinement matters too. The trade-off is only exploitable in the short run —
+    over time the economy returns toward its natural rate of unemployment (4.4% here)
+    regardless of what you do to prices. Try to hold unemployment permanently below it and
+    you buy nothing but inflation.</p>
+
+  <h2>Everything arrives late</h2>
+  <p>A rate change in the game affects the economy the <em>following</em> quarter, never the
+    current one. This is the single most important thing about running monetary policy and
+    the thing players find hardest. The Bank's own estimate is that policy takes somewhere
+    between one and two years to have its full effect, which is why the MPC forecasts rather
+    than reacts. If you wait until inflation is visibly out of control before moving, you
+    are already too late; the medicine arrives after the illness has spread.</p>
+
+  <h2>Inflation expectations</h2>
+  <p>Inflation in the game does not revert toward 2%. It reverts toward what people
+    <em>expect</em>, and expectations drift toward whatever inflation has actually been running:</p>
+  <div class="box">
+    <p><code>chase = 0.10 + 0.16 × clamp((inflation − 5) / 10, 0, 1)</code></p>
+    <p><code>expectations += chase × (inflation − expectations)</code></p>
+  </div>
+  <p>Below about 5%, expectations move slowly — the target still has credibility, and
+    inflation gravitates home on its own. Above it, the coefficient rises and the public
+    starts pricing off what it sees rather than what the Bank promises. That is a
+    wage-price spiral, and it is the mechanism that took UK inflation to 24.2% in 1975.
+    Expectations only re-anchor toward 2% while you are actually holding inflation inside
+    the band, so the way out of a spiral is to get inflation down and <em>keep</em> it down long
+    enough to be believed.</p>
+
+  <h3>And the same thing in reverse</h3>
+  <p>Below zero, falling prices raise the real value of debt and give people a reason to
+    postpone spending. Demand weakens, unemployment climbs, and prices fall further. Japan
+    spent the best part of three decades in that trap, which is why the game's deflation
+    medal is named after it. Deflation is not a safe place to be; it is the other cliff.</p>
+
+  <h2>The neutral rate, which you cannot see</h2>
+  <p>There is a neutral rate of interest — economists write it r* — at which policy is
+    neither stimulating nor restraining. It is unobservable in real life, and it is hidden
+    from you in the game too. It also moves: world interest rates wander through the term
+    and drag the UK's neutral rate with them, so the Bank Rate that was right two years ago
+    can be quietly wrong today.</p>
+  <p>Your read on it comes from the Committee. Each of the eight other members prices their
+    own preferred rate off a Taylor-style rule and the true neutral rate, so when the vote
+    comes back "8 members wanted it far higher", that is the game telling you where neutral
+    has moved. They only advise — the decision is always yours — but ignoring a lopsided
+    vote is usually expensive.</p>
+
+  <h2>Shocks</h2>
+  <p>Every quarter carries a chance of an energy shock, in three sizes:</p>
+  <table>
+    <tr><th>Tier</th><th>Chance</th><th>Inflation</th><th>Persistence</th></tr>
+    <tr><td>Minor</td><td>~11%</td><td>+0.32pp</td><td>Fades in a quarter</td></tr>
+    <tr><td>Major</td><td>~4.7%</td><td>+0.75pp</td><td>A couple of quarters</td></tr>
+    <tr><td>Crisis</td><td>~1.8%</td><td>+3.6pp</td><td>Years</td></tr>
+  </table>
+  <p>The crisis tier is modelled on 2022, when the invasion of Ukraine pushed UK CPI to
+    11.1% — its highest in forty years. A crisis in the game can do the same, and the tail
+    keeps feeding inflation long after the headline event. Because it is a <em>supply</em>
+    shock, it is the nastiest thing that can happen to you: it raises inflation and hurts
+    employment simultaneously, so both your targets break at once and the textbook
+    trade-off offers no comfortable answer.</p>
+
+  <h2>What your rate actually does</h2>
+  <p>Policy transmission saturates rather than scaling linearly:</p>
+  <div class="box">
+    <p><code>squeeze = tanh((rate − neutral) / 4)</code></p>
+    <p><code>inflation += −2.00 × squeeze</code> &nbsp;·&nbsp; <code>unemployment += 0.62 × squeeze</code></p>
+  </div>
+  <p>This matters. A linear rule would let a 15% Bank Rate erase a decade of inflation in a
+    single quarter, which is nonsense. With saturation, going to 15% is genuinely powerful
+    but it takes years to break a spiral — and it puts a great many people out of work while
+    it does. That is the actual Volcker experience: the US Federal Reserve took rates above
+    19% in 1981, broke the back of inflation, and caused the deepest recession since the
+    1930s doing it.</p>
+
+  <h2>Scoring</h2>
+  <ul>
+    <li><strong>+2</strong> for each quarter with both metrics inside their bands, rising as
+      you string quarters together.</li>
+    <li><strong>−1 per 0.1pp</strong> outside a band, capped at 6 per quarter so a single
+      catastrophe cannot end the game outright.</li>
+    <li><strong>+3</strong> when inflation is above the band but falling — you get credit for
+      winning the fight, not only for having already won it.</li>
+    <li><strong>−8</strong>, once, if CPI reaches 3.5%. In real life the Governor must write
+      a letter to the Chancellor whenever inflation misses the target by more than a point.</li>
+    <li><strong>Par</strong> adjusts for the hand you were dealt. A term containing a
+      1974-scale energy crisis is not judged against a calm one.</li>
+  </ul>
+
+  <h2>What it deliberately leaves out</h2>
+  <p>No fiscal policy, no exchange rate you can see, no quantitative easing, no housing
+    market, no banking system, no distinction between headline and core inflation, and a
+    single interest rate standing in for an entire yield curve. Real forecasting models run
+    to hundreds of equations and still miss. This one has about six, and the point of it is
+    the trade-off, not the forecast.</p>
+
+  <a class="play" href="index.html">Play the game →</a>
+
+  <footer>
+    <a href="index.html">Game</a> · <a href="about.html">About</a> · <a href="privacy.html">Privacy</a><br>
+    A simplified model, for entertainment. Not economic advice, and not the MPC.
+  </footer>
+</div>
+</body>
+</html>

@@ -6,9 +6,21 @@
 <title>Bank of England Governor</title>
 <meta name="description" content="Twenty quarters. Two targets. Set UK Bank Rate, survive the shocks, keep your job.">
 <meta name="theme-color" content="#0A0E1A">
+<link rel="canonical" href="/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bank of England Governor">
+<meta property="og:title" content="Bank of England Governor">
+<meta property="og:description" content="Twenty quarters. Two targets. Set UK Bank Rate, survive the shocks, keep your job.">
+<meta property="og:image" content="share.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Bank of England Governor">
+<meta name="twitter:description" content="Can you keep inflation and unemployment on target for five years?">
+<meta name="twitter:image" content="share.png">
 <!--
-  To activate advertising, add this to <head>:
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-REPLACE_ME" crossorigin="anonymous"></script>
+  Advertising: fill in the ADS object near the top of the script below with your
+  AdSense publisher ID and the three slot IDs. Nothing external loads until you do.
 -->
 <style>
   /* Single-theme arcade screen: painted explicitly so it holds on any host. */
@@ -230,6 +242,7 @@
   .guide span span,.guide li>span:last-child{font-size:12px;color:var(--muted);line-height:1.4}
 
   /* ---- Ads ---- */
+  .ad-slot.live{border:0;padding:0;display:block}
   .ad-slot{min-height:64px;border:1px dashed var(--line);border-radius:14px;display:grid;place-items:center;
     color:#4C5875;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;padding:8px}
 
@@ -245,7 +258,9 @@
   .pos{color:var(--good)} .neg{color:var(--bad)}
   #game.screen{flex:1 1 auto;display:flex;flex-direction:column}
   .hide{display:none !important}
-  footer{font-size:10px;color:#4C5875;text-align:center;padding:10px 0 14px;line-height:1.5}
+  footer{font-size:10px;color:#4C5875;text-align:center;padding:10px 0 14px;line-height:1.8}
+  footer a{color:#8A97AE;text-decoration:none;border-bottom:1px solid var(--line)}
+  footer a:hover{color:var(--ink)}
   @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
 
   @media (max-height:680px){
@@ -290,14 +305,7 @@
     </ol>
 
     <!-- ===== AD SLOT (pre-game) ===== -->
-    <div class="ad-slot" id="adIntro">
-      Advertisement
-      <!--
-      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-REPLACE_ME"
-           data-ad-slot="REPLACE_ME" data-ad-format="auto" data-full-width-responsive="true"></ins>
-      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-      -->
-    </div>
+    <div class="ad-slot" id="adIntro" data-ad="intro">Advertisement</div>
 
     <div class="dock"><button class="go" id="start">TAKE OFFICE</button></div>
   </div>
@@ -344,14 +352,7 @@
     </div>
 
     <!-- ===== AD SLOT (banner) ===== -->
-    <div class="ad-slot" id="adTop">
-      Advertisement
-      <!--
-      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-REPLACE_ME"
-           data-ad-slot="REPLACE_ME" data-ad-format="auto" data-full-width-responsive="true"></ins>
-      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-      -->
-    </div>
+    <div class="ad-slot" id="adTop" data-ad="banner">Advertisement</div>
 
     <div class="dock">
       <div class="rateline"><span class="l">Bank Rate</span><span class="v" id="rateVal">3.75%</span></div>
@@ -377,14 +378,7 @@
       <div class="say" id="say"></div>
       <div id="lines"></div>
       <!-- ===== AD SLOT (results) ===== -->
-      <div class="ad-slot" style="margin:14px 0 12px">
-        Advertisement
-        <!--
-        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-REPLACE_ME"
-             data-ad-slot="REPLACE_ME" data-ad-format="auto" data-full-width-responsive="true"></ins>
-        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-        -->
-      </div>
+      <div class="ad-slot" id="adResults" data-ad="results" style="margin:14px 0 12px">Advertisement</div>
       <div class="sharecard" id="shareCard" aria-hidden="true"></div>
       <button class="go share" id="share">SHARE RESULT</button>
       <button class="go" id="again" style="margin-top:9px">PLAY AGAIN</button>
@@ -402,12 +396,47 @@
     </div>
   </div>
 
-  <footer>A simplified model, for entertainment. Not economic advice, and not the MPC.</footer>
+  <footer>A simplified model, for entertainment. Not economic advice, and not the MPC.<br>
+    <a href="how-it-works.html">How the model works</a> · <a href="about.html">About</a> ·
+    <a href="privacy.html">Privacy</a></footer>
 </div>
 
 <script>
 (function(){
   "use strict";
+
+  // ---------- Advertising ----------
+  // Leave `client` empty and the slots stay inert placeholders — no external
+  // requests. Fill it in with your ca-pub-XXXX id plus the three slot ids and
+  // the same containers become live AdSense units. Their heights are already
+  // reserved in CSS, so filling them in causes no layout shift.
+  var ADS = { client: "", slots: { intro: "", banner: "", results: "" } };
+
+  function initAds(){
+    if (!ADS.client) return;                       // placeholders stay as they are
+    var sc = document.createElement("script");
+    sc.async = true;
+    sc.crossOrigin = "anonymous";
+    sc.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" + ADS.client;
+    document.head.appendChild(sc);
+
+    var boxes = document.querySelectorAll("[data-ad]");
+    for (var i=0;i<boxes.length;i++){
+      var box = boxes[i], slot = ADS.slots[box.getAttribute("data-ad")];
+      if (!slot) continue;
+      box.textContent = "";
+      box.classList.add("live");
+      var ins = document.createElement("ins");
+      ins.className = "adsbygoogle";
+      ins.style.display = "block";
+      ins.setAttribute("data-ad-client", ADS.client);
+      ins.setAttribute("data-ad-slot", slot);
+      ins.setAttribute("data-ad-format", "auto");
+      ins.setAttribute("data-full-width-responsive", "true");
+      box.appendChild(ins);
+      try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e){}
+    }
+  }
 
   // ---------- Calibration (August 2026) ----------
   var START = { rate:3.75, inflation:2.6, unemployment:4.9 };
@@ -1150,6 +1179,7 @@
 
   window.addEventListener("resize", render);
   restart();
+  initAds();
 })();
 </script>
 </body>

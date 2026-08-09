@@ -1,0 +1,4 @@
+# Authorised digital sellers. Replace pub-REPLACE_ME with your AdSense publisher ID
+# (Account → Settings → Account information), then this file must be reachable at
+# https://yourdomain/ads.txt for ads to serve.
+google.com, pub-REPLACE_ME, DIRECT, f08c47fec0942fa0
