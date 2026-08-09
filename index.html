@@ -89,6 +89,9 @@
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,93,93,.6)}100%{box-shadow:0 0 0 16px rgba(255,93,93,0)}}
   @keyframes shake{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(3px)}50%{transform:translateX(-3px)}}
   .shake{animation:shake .4s ease-in-out}
+  @keyframes goodflash{0%{box-shadow:0 0 0 0 rgba(61,220,151,.55);border-color:var(--good)}
+    100%{box-shadow:0 0 0 14px rgba(61,220,151,0);border-color:var(--line)}}
+  .tile.flash-good{animation:goodflash .7s ease-out}
 
   /* ---- Committee ---- */
   .vote{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);
@@ -132,6 +135,45 @@
     font:inherit;font-size:17px;font-weight:900;letter-spacing:.2px;cursor:pointer;
     touch-action:manipulation;box-shadow:0 6px 0 #8E0F24}
   .go:active{transform:translateY(3px);box-shadow:0 3px 0 #8E0F24}
+
+  /* ---- Streak meter ---- */
+  .streak{display:flex;align-items:baseline;gap:4px;flex:0 0 auto;border-radius:999px;
+    padding:6px 12px;background:rgba(61,220,151,.14);border:1px solid rgba(61,220,151,.45);
+    transition:box-shadow .3s,background .3s}
+  .streak b{font-size:15px;font-weight:900;color:var(--good);font-variant-numeric:tabular-nums;line-height:1}
+  .streak i{font-style:normal;font-size:10px;font-weight:800;color:var(--good);opacity:.8}
+  .streak.hot{background:rgba(61,220,151,.22);box-shadow:0 0 14px rgba(61,220,151,.45)}
+  .streak.blaze{background:rgba(255,193,69,.22);border-color:var(--warn);
+    box-shadow:0 0 20px rgba(255,193,69,.55)}
+  .streak.blaze b,.streak.blaze i{color:var(--warn)}
+  .streak.broken{background:rgba(255,93,93,.2);border-color:var(--bad);animation:shake .4s ease-in-out}
+  .streak.broken b,.streak.broken i{color:var(--bad)}
+
+  /* ---- Career + medals ---- */
+  .career{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px;
+    margin-bottom:12px}
+  .cstats{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:1.1px;
+    color:var(--muted);margin-bottom:9px}
+  .cstats b{color:var(--ink)}
+  .mrow{display:flex;flex-wrap:wrap;gap:6px}
+  .mchip{width:34px;height:34px;border-radius:11px;background:var(--raised);border:1px solid var(--line);
+    display:grid;place-items:center;font-size:17px;filter:grayscale(1);opacity:.3}
+  .mchip.got{filter:none;opacity:1;border-color:rgba(61,220,151,.5);background:rgba(61,220,151,.12)}
+  .newmedals{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+  .nm{display:flex;align-items:center;gap:10px;background:rgba(61,220,151,.12);
+    border:1px solid rgba(61,220,151,.5);border-radius:13px;padding:9px 11px;animation:pulse .8s ease-out}
+  .nm .e{font-size:22px;line-height:1}
+  .nm b{display:block;font-size:13.5px}
+  .nm span span{font-size:11px;color:var(--muted)}
+  .nm .tag{margin-left:auto;font-size:9px;font-weight:900;letter-spacing:1px;color:var(--good);
+    border:1px solid rgba(61,220,151,.5);border-radius:6px;padding:2px 6px}
+
+  /* ---- Term story chart ---- */
+  .story{width:100%;height:196px;display:block;margin-bottom:6px}
+  .storykey{display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--muted);margin-bottom:14px}
+  .storykey .sw{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+  .storykey .bandkey::before{content:"";display:inline-block;width:10px;height:8px;margin-right:5px;
+    border-radius:2px;background:rgba(61,220,151,.35)}
 
   /* ---- Share ---- */
   .sharecard{background:var(--bg);border:1px solid var(--line);border-radius:14px;
@@ -200,6 +242,11 @@
         and the Middle East is on fire. You have five years.</p>
     </div>
 
+    <div class="career hide" id="career">
+      <div class="cstats" id="cstats"></div>
+      <div class="mrow" id="mrow"></div>
+    </div>
+
     <ol class="guide">
       <li><span class="n">1</span><span><b>Set Bank Rate each quarter</b>
         Anywhere from 0% to 15%. Twenty quarters, then they judge your record.</span></li>
@@ -234,6 +281,7 @@
       <div class="q" id="qName">Q3 2026</div>
       <div class="sub" id="qNum">Quarter 1 of 20</div>
     </div>
+    <div class="streak hide" id="streak" aria-live="polite"><b id="streakN">×2</b><i id="streakP">+2</i></div>
     <div class="score"><b id="score">0</b><i>pts</i></div>
     <button class="icon-btn" id="restart" title="Restart" aria-label="Restart">↻</button>
   </div>
@@ -293,6 +341,11 @@
 
   <div id="end" class="hide">
     <div class="sheet">
+      <canvas id="story" class="story" aria-label="Inflation and unemployment across your term"></canvas>
+      <div class="storykey"><span><i class="sw" style="background:var(--infl)"></i>Inflation</span>
+        <span><i class="sw" style="background:var(--unemp)"></i>Unemployment</span>
+        <span class="bandkey">Target band</span></div>
+      <div class="newmedals hide" id="newMedals"></div>
       <div class="medal" id="medal">🎖️</div>
       <h2 id="rating">—</h2>
       <div class="say" id="say"></div>
@@ -363,6 +416,43 @@
     ["🏦","Orderly meeting","Nothing new on the desk. The Committee awaits your proposal."]
   ];
 
+  // ---------- Career (persisted) ----------
+  // Everything here is best-effort: Safari private mode throws on setItem, and
+  // the game has to stay fully playable when storage is unavailable.
+  var STORE = "boeGov.v1";
+  function freshCareer(){ return { games:0, bestScore:null, bestStreak:0, crisesSurvived:0, medals:[] }; }
+  function loadCareer(){
+    try {
+      var raw = localStorage.getItem(STORE);
+      if (!raw) return freshCareer();
+      var c = JSON.parse(raw);
+      if (!c || typeof c !== "object") return freshCareer();
+      if (!Array.isArray(c.medals)) c.medals = [];
+      return c;
+    } catch(e){ return freshCareer(); }
+  }
+  function saveCareer(){ try { localStorage.setItem(STORE, JSON.stringify(career)); } catch(e){} }
+  var career = loadCareer();
+
+  var MEDALS = [
+    { id:"soft",   emoji:"🎯", name:"Soft Landing",         hint:"End on target with unemployment under 4.5%",
+      test:function(S){ return inBand(S.infl,INFL_BAND) && inBand(S.unemp,UNEMP_BAND) && S.unemp < 4.5; } },
+    { id:"iron",   emoji:"🛡️", name:"Iron Governor",        hint:"Ten quarters running inside both bands",
+      test:function(S){ return S.bestStreak >= 10; } },
+    { id:"volcker",emoji:"🗜️", name:"The Volcker",          hint:"Go to 10%+ and still land inflation on target",
+      test:function(S){ return S.maxRate >= 10 && inBand(S.infl,INFL_BAND); } },
+    { id:"war",    emoji:"🔥", name:"War Economy",          hint:"Beat par in a term with an energy crisis",
+      test:function(S,par){ return S.crisisHits > 0 && S.score >= par; } },
+    { id:"steady", emoji:"🕊️", name:"Steady Hand",          hint:"Keep CPI between 0% and 3.5% all term",
+      test:function(S){ return !S.crisisFired && S.peakInfl < CRISIS_CPI && S.minInfl >= 0; } },
+    { id:"perfect",emoji:"💯", name:"Perfect Term",         hint:"All twenty quarters inside both bands",
+      test:function(S){ return S.bandHits === QUARTERS; } },
+    { id:"japan",  emoji:"❄️", name:"Japanese Lesson",      hint:"Let inflation fall below zero",
+      test:function(S){ return S.minInfl < 0; } },
+    { id:"oldlady",emoji:"🏛️", name:"Old Lady's Favourite", hint:"Serve five full terms",
+      test:function(){ return career.games >= 5; } }
+  ];
+
   // ---------- State ----------
   var S;
   function reset(){
@@ -378,7 +468,8 @@
       crisisFired:false, crisisPenalty:0,
       shocksHit:0, majorHits:0, crisisHits:0,
       shockCarry:0, dissents:0, peakInfl:START.inflation, crisisName:"",
-      hist:[{i:START.inflation,u:START.unemployment}],
+      minInfl:START.inflation, maxRate:START.rate, bandHits:0,
+      hist:[{i:START.inflation,u:START.unemployment,tier:0,emoji:""}],
       dots:[], over:false
     };
   }
@@ -438,6 +529,8 @@
     S.infl  = clamp(S.infl  + (-0.50*gap) - 0.30*(S.infl - S.exp) + shock + carry + importPush + noise, -1, 15);
     S.unemp = clamp(S.unemp + ( 0.13*gap) - 0.16*(S.unemp - 4.4) + 0.16*carry, 2.5, 12);
     if (S.infl > S.peakInfl) S.peakInfl = S.infl;
+    if (S.infl < S.minInfl) S.minInfl = S.infl;
+    if (decided > S.maxRate) S.maxRate = decided;
 
     S.exp += 0.10*(S.infl - S.exp);
     if (inBand(S.infl, INFL_BAND)) S.exp += 0.20*(2.0 - S.exp);
@@ -458,6 +551,7 @@
       var pts = 2 + (S.streak > 2 ? Math.min(S.streak - 2, 3) : 0);
       S.bandPoints += pts; S.score += pts;
       if (S.streak > S.bestStreak) S.bestStreak = S.streak;
+      S.bandHits++;
     } else S.streak = 0;
     var miss = Math.min((outBy(S.infl, INFL_BAND) + outBy(S.unemp, UNEMP_BAND)) * 10, MAX_QUARTER_PENALTY);
     if (miss > 0) { S.missPoints += miss; S.score -= miss; }
@@ -466,33 +560,134 @@
     if (!S.crisisFired && S.infl >= CRISIS_CPI) { S.crisisFired = true; S.crisisPenalty = 8; S.score -= 8; }
 
     S.dots.push(ok ? "hit" : "miss");
-    S.hist.push({i:S.infl, u:S.unemp});
-    return { ev:ev, tier:tier, delta:Math.round(S.score - before) };
+    S.hist.push({i:S.infl, u:S.unemp, tier:tier, emoji:tier?ev[0]:""});
+    return { ev:ev, tier:tier, ok:ok, delta:Math.round(S.score - before) };
+  }
+
+  // ---------- Canvas helpers ----------
+  var REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function fit(cv){
+    var ctx = cv.getContext("2d");
+    var dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (!w) return null;
+    cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+    return { ctx:ctx, w:w, h:h };
   }
 
   // ---------- Sparklines ----------
   function spark(id, key, colour, lo, hi, band){
-    var cv = $(id), ctx = cv.getContext("2d");
-    var dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
-    if (!w) return;
-    cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr);
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    ctx.clearRect(0,0,w,h);
+    var d = fit($(id)); if (!d) return;
+    var ctx = d.ctx, w = d.w, h = d.h;
     var Y = function(v){ return h - ((clamp(v,lo,hi)-lo)/(hi-lo))*h; };
-    var X = function(i){ return (i/(QUARTERS)) * w; };
+    var X = function(i){ return (i/QUARTERS) * w; };
 
-    ctx.strokeStyle = "rgba(138,151,174,.22)";
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, Y(band.hi)+0.5); ctx.lineTo(w, Y(band.hi)+0.5); ctx.stroke();
+    // target band behind everything
+    ctx.fillStyle = "rgba(61,220,151,.16)";
+    ctx.fillRect(0, Y(band.hi), w, Y(band.lo)-Y(band.hi));
+
+    var pts = S.hist.map(function(p,i){ return { x:X(i), y:Y(p[key]), v:p[key] }; });
+    var last = pts[pts.length-1];
+
+    // area fill under the line, fading out
+    if (pts.length > 1){
+      var g = ctx.createLinearGradient(0,0,0,h);
+      g.addColorStop(0, colour + "44"); g.addColorStop(1, colour + "00");
+      ctx.beginPath(); ctx.moveTo(pts[0].x, h);
+      pts.forEach(function(p){ ctx.lineTo(p.x, p.y); });
+      ctx.lineTo(last.x, h); ctx.closePath();
+      ctx.fillStyle = g; ctx.fill();
+    }
+
+    // the breach: anything outside the band shaded red against the band edge
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, w, Y(band.hi)); ctx.rect(0, Y(band.lo), w, h - Y(band.lo));
+    ctx.clip();
+    ctx.beginPath(); ctx.moveTo(pts[0].x, Y(clamp(pts[0].v, band.lo, band.hi)));
+    pts.forEach(function(p){ ctx.lineTo(p.x, p.y); });
+    for (var i=pts.length-1;i>=0;i--) ctx.lineTo(pts[i].x, Y(clamp(pts[i].v, band.lo, band.hi)));
+    ctx.closePath(); ctx.fillStyle = "rgba(255,93,93,.28)"; ctx.fill();
+    ctx.restore();
 
     ctx.beginPath();
-    S.hist.forEach(function(p,i){ var x=X(i), y=Y(p[key]); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+    pts.forEach(function(p,i){ i ? ctx.lineTo(p.x,p.y) : ctx.moveTo(p.x,p.y); });
     ctx.strokeStyle = colour; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.lineCap = "round";
     ctx.stroke();
 
-    var last = S.hist[S.hist.length-1];
-    ctx.beginPath(); ctx.arc(X(S.hist.length-1), Y(last[key]), 3, 0, Math.PI*2);
+    // newest print gets a halo so the eye lands on it
+    ctx.beginPath(); ctx.arc(last.x, last.y, 6, 0, Math.PI*2);
+    ctx.fillStyle = colour + "33"; ctx.fill();
+    ctx.beginPath(); ctx.arc(last.x, last.y, 3, 0, Math.PI*2);
     ctx.fillStyle = colour; ctx.fill();
+  }
+
+  // ---------- Term story chart (results) ----------
+  var storyAnim = null;
+  function drawStory(upto){
+    var d = fit($("story")); if (!d) return;
+    var ctx = d.ctx, w = d.w, h = d.h;
+    var padL = 24, padB = 16, padT = 20;
+    var lo = 0, hi = 15;
+    var Y = function(v){ return padT + (1 - (clamp(v,lo,hi)-lo)/(hi-lo)) * (h-padT-padB); };
+    var X = function(i){ return padL + (i/QUARTERS) * (w-padL-6); };
+
+    // both target bands
+    ctx.fillStyle = "rgba(61,220,151,.16)";
+    ctx.fillRect(padL, Y(INFL_BAND.hi), w-padL-6, Y(INFL_BAND.lo)-Y(INFL_BAND.hi));
+    ctx.fillStyle = "rgba(255,164,91,.10)";
+    ctx.fillRect(padL, Y(UNEMP_BAND.hi), w-padL-6, Y(UNEMP_BAND.lo)-Y(UNEMP_BAND.hi));
+
+    ctx.strokeStyle = "rgba(42,53,73,.9)"; ctx.lineWidth = 1;
+    ctx.fillStyle = "#8A97AE"; ctx.font = "9px -apple-system,system-ui,sans-serif";
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    [0,5,10,15].forEach(function(v){
+      var y = Math.round(Y(v))+0.5;
+      ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(w-6,y); ctx.stroke();
+      ctx.fillText(v+"%", padL-5, y);
+    });
+
+    var n = Math.max(1, Math.min(upto, S.hist.length));
+    function series(key, colour, fill){
+      ctx.beginPath();
+      for (var i=0;i<n;i++){ var x=X(i), y=Y(S.hist[i][key]); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+      if (fill){
+        ctx.save(); ctx.lineTo(X(n-1), Y(lo)); ctx.lineTo(X(0), Y(lo)); ctx.closePath();
+        var g = ctx.createLinearGradient(0,padT,0,h-padB);
+        g.addColorStop(0, colour+"3A"); g.addColorStop(1, colour+"00");
+        ctx.fillStyle = g; ctx.fill(); ctx.restore();
+        ctx.beginPath();
+        for (var j=0;j<n;j++){ var x2=X(j), y2=Y(S.hist[j][key]); j?ctx.lineTo(x2,y2):ctx.moveTo(x2,y2); }
+      }
+      ctx.strokeStyle = colour; ctx.lineWidth = 2.5; ctx.lineJoin = "round"; ctx.lineCap = "round";
+      ctx.stroke();
+    }
+    series("i", "#4CC9F0", true);
+    series("u", "#FFA45B", false);
+
+    // shock pins, sized by severity
+    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    for (var k=1;k<n;k++){
+      var p = S.hist[k]; if (!p.tier) continue;
+      var x = X(k), y = Y(p.i);
+      if (p.tier === 3){
+        ctx.strokeStyle = "rgba(255,93,93,.55)"; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(x, y-8); ctx.lineTo(x, h-padB); ctx.stroke();
+      }
+      ctx.font = (p.tier === 3 ? "16px" : "11px") + " -apple-system,system-ui,sans-serif";
+      ctx.fillText(p.emoji, x, Math.max(y-9, padT-2));
+    }
+  }
+  function playStory(){
+    if (storyAnim) cancelAnimationFrame(storyAnim);
+    if (REDUCED){ drawStory(S.hist.length); return; }
+    var t0 = null, dur = 1800;
+    (function frame(t){
+      if (t0 === null) t0 = t;
+      var k = Math.min(1, (t - t0) / dur);
+      drawStory(Math.max(1, Math.round(k * S.hist.length)));
+      if (k < 1) storyAnim = requestAnimationFrame(frame); else storyAnim = null;
+    })(performance.now());
   }
 
   // ---------- Render ----------
@@ -509,8 +704,52 @@
     mk.style.left = clamp((v-lo)/span,0,1)*100 + "%";
     mk.className = "mk" + (inBand(v,band) ? "" : " bad");
   }
+  var shownScore = 0, scoreAnim = null;
+  function rollScore(to){
+    if (scoreAnim) cancelAnimationFrame(scoreAnim);
+    var from = shownScore, target = Math.round(to);
+    if (REDUCED || from === target){ shownScore = target; $("score").textContent = target; return; }
+    var t0 = null, dur = 450;
+    (function frame(t){
+      if (t0 === null) t0 = t;
+      var k = Math.min(1, (t - t0)/dur), e = 1 - Math.pow(1-k, 3);
+      shownScore = Math.round(from + (target-from)*e);
+      $("score").textContent = shownScore;
+      if (k < 1) scoreAnim = requestAnimationFrame(frame);
+      else { shownScore = target; $("score").textContent = target; scoreAnim = null; }
+    })(performance.now());
+  }
+
+  var lastStreak = 0;
+  function renderStreak(broke){
+    var el = $("streak");
+    var hadRun = lastStreak >= 2;
+    lastStreak = S.streak;
+    if (S.streak < 2){
+      // "LOST" belongs to the moment a live run breaks, not to every later miss.
+      if (broke && hadRun){
+        el.className = "streak broken";
+        $("streakN").textContent = "×0"; $("streakP").textContent = "LOST";
+        setTimeout(function(){ el.className = "streak hide"; }, 900);
+      } else el.className = "streak hide";
+      return;
+    }
+    el.className = "streak" + (S.streak >= 8 ? " blaze" : (S.streak >= 4 ? " hot" : ""));
+    $("streakN").textContent = "×" + S.streak;
+    $("streakP").textContent = "+" + (2 + Math.min(Math.max(S.streak-2,0), 3));
+  }
+
+  function flashTile(id, wasOut, isOut){
+    // Quarter 0 is a fresh term: the tiles still carry the last term's state.
+    if (S.q > 0 && wasOut && !isOut){
+      var el = $(id);
+      el.classList.add("flash-good");
+      setTimeout(function(){ el.classList.remove("flash-good"); }, 700);
+    }
+  }
+
   function render(){
-    $("score").textContent = Math.round(S.score);
+    rollScore(S.score);
     $("qName").textContent = S.over ? "Term complete" : QNAMES[S.q];
     $("qNum").textContent = S.over ? QUARTERS + " quarters served" : "Quarter " + (S.q+1) + " of " + QUARTERS;
 
@@ -518,8 +757,12 @@
     $("uVal").textContent = S.unemp.toFixed(1);
     arrow("iArr", S.infl, S.prevInfl);
     arrow("uArr", S.unemp, S.prevUnemp);
-    $("tileI").className = "tile" + (inBand(S.infl, INFL_BAND) ? "" : " out");
-    $("tileU").className = "tile" + (inBand(S.unemp, UNEMP_BAND) ? "" : " out");
+    var iWasOut = $("tileI").classList.contains("out"), uWasOut = $("tileU").classList.contains("out");
+    var iOut = !inBand(S.infl, INFL_BAND), uOut = !inBand(S.unemp, UNEMP_BAND);
+    $("tileI").className = "tile" + (iOut ? " out" : "");
+    $("tileU").className = "tile" + (uOut ? " out" : "");
+    flashTile("tileI", iWasOut, iOut);
+    flashTile("tileU", uWasOut, uOut);
     strip("iZone","iMk", S.infl, INFL_BAND, 0, 14);
     strip("uZone","uMk", S.unemp, UNEMP_BAND, 2, 10);
     spark("sparkI","i","#4CC9F0",0,14,INFL_BAND);
@@ -547,6 +790,20 @@
     el.textContent = (delta > 0 ? "+" : "") + delta;
     $("score").parentNode.appendChild(el);
     setTimeout(function(){ el.remove(); }, 1000);
+  }
+
+  // ---------- Career strip (intro) ----------
+  function renderCareer(){
+    if (!career.games){ $("career").classList.add("hide"); return; }
+    $("career").classList.remove("hide");
+    $("cstats").innerHTML = "Terms served <b>" + career.games + "</b> · Best <b>"
+      + (career.bestScore === null ? "—" : career.bestScore) + "</b> · Medals <b>"
+      + career.medals.length + "/" + MEDALS.length + "</b>";
+    $("mrow").innerHTML = MEDALS.map(function(m){
+      var got = career.medals.indexOf(m.id) > -1;
+      return '<span class="mchip' + (got ? " got" : "") + '" title="' + m.name + " — " + m.hint
+           + '" aria-label="' + m.name + (got ? " (earned)" : " (locked)") + '">' + m.emoji + '</span>';
+    }).join("");
   }
 
   // ---------- Results ----------
@@ -589,10 +846,37 @@
 
     $("qName").textContent = "Term complete";
     $("qNum").textContent = QUARTERS + " quarters served";
-    buildShare(medal, rating);
+    // Career: a term is only banked once, at the end.
+    career.games++;
+    if (career.bestScore === null || S.score > career.bestScore) career.bestScore = Math.round(S.score);
+    if (S.bestStreak > career.bestStreak) career.bestStreak = S.bestStreak;
+    career.crisesSurvived += S.crisisHits;
+
+    var earned = [];
+    MEDALS.forEach(function(m){
+      if (career.medals.indexOf(m.id) === -1 && m.test(S, par)){
+        career.medals.push(m.id); earned.push(m);
+      }
+    });
+    saveCareer();
+    renderCareer();
+
+    $("newMedals").innerHTML = earned.map(function(m){
+      return '<div class="nm"><span class="e">'+m.emoji+'</span><span><b>'+m.name+'</b>'
+           + '<span>'+m.hint+'</span></span><span class="tag">NEW</span></div>';
+    }).join("");
+    $("newMedals").classList.toggle("hide", earned.length === 0);
+    if (earned.length && navigator.vibrate) navigator.vibrate([12,60,12,60,20]);
+
+    lines.push(["Terms served", String(career.games), null]);
+    if (career.bestScore !== null)
+      lines.push(["Your best score", String(career.bestScore), S.score >= career.bestScore]);
+
+    buildShare(medal, rating, earned);
     $("game").classList.add("hide");
     $("end").classList.remove("hide");
-    $("score").textContent = Math.round(S.score);
+    playStory();                       // needs a laid-out canvas, so after unhide
+    rollScore(S.score);   // the end-of-term bonus lands after the last render
     window.scrollTo({top:0, behavior:"smooth"});
   }
 
@@ -600,7 +884,7 @@
   // The twenty quarters read as a grid of squares, so a term tells its own
   // story at a glance: the run of green, the crisis, the recovery.
   var shareText = "";
-  function buildShare(medal, rating){
+  function buildShare(medal, rating, earned){
     var grid = S.dots.map(function(d){ return d === "hit" ? "🟩" : "🟥"; }).join("");
     var lines = [
       "🏦 BoE Governor — " + QNAMES[0] + " to " + QNAMES[QUARTERS-1],
@@ -608,13 +892,15 @@
       grid,
       "Peak CPI " + f1(S.peakInfl) + (S.crisisName ? " · survived: " + S.crisisName.replace(/!$/,"") : "")
     ];
+    if (earned && earned.length)
+      lines.push("🏅 " + earned.map(function(m){ return m.emoji + " " + m.name; }).join(", "));
     var url = (location.protocol === "http:" || location.protocol === "https:")
       ? location.origin + location.pathname : "";
     if (url) lines.push(url);
     shareText = lines.join("\n");
 
     $("shareCard").innerHTML = lines[0] + '<b>' + lines[1] + '</b><span class="grid">' + grid
-      + '</span>' + lines[3] + (url ? "\n" + url : "");
+      + '</span>' + lines.slice(3).join("\n");
     var btn = $("share");
     btn.className = "go share"; btn.textContent = "SHARE RESULT";
     $("shareFallback").classList.add("hide");
@@ -708,7 +994,13 @@
     else $("voteText").textContent = "Carried, with " + v.against + " dissenting.";
     setEvent(out.ev, out.tier, !wasCrisis && S.crisisFired);
     render();
+    renderStreak(!out.ok);
     popScore(out.delta);
+    if (navigator.vibrate){
+      if (out.tier === 3) navigator.vibrate([30,50,30,50,60]);
+      else if (out.tier === 2) navigator.vibrate([15,45,15]);
+      else if (out.ok && S.streak >= 4) navigator.vibrate(10);
+    }
     if (S.q >= QUARTERS) finish(); else updateRate();
   });
 
@@ -724,7 +1016,10 @@
     $("evTitle").textContent = "Your first meeting";
     $("evText").textContent = "Inflation is 2.6% and drifting. Set Bank Rate — the Committee advises, you decide.";
     $("event").className = "event";
-    updateRate(); render();
+    shownScore = 0; lastStreak = 0;
+    $("streak").className = "streak hide";
+    $("newMedals").classList.add("hide");
+    updateRate(); render(); renderCareer();
     window.scrollTo({top:0});
   }
 
