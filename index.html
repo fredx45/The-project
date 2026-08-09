@@ -231,7 +231,7 @@
     padding:11px 12px;margin:0 0 10px;font-size:13px;line-height:1.55;
     font-variant-numeric:tabular-nums;white-space:pre-wrap;word-break:break-word;color:var(--muted)}
   .sharecard b{display:block;color:var(--ink);font-weight:800;font-size:13.5px}
-  .sharecard .grid{display:block;font-size:15px;letter-spacing:1px;line-height:1.5;margin:4px 0 2px}
+  .sharecard .grid{display:block;font-size:17px;letter-spacing:2px;line-height:1.35;margin:6px 0 4px}
   .go.share{background:var(--good);color:#06281A;box-shadow:0 6px 0 #1E9C68}
   .go.share:active{box-shadow:0 3px 0 #1E9C68}
   .go.share.done{background:var(--raised);color:var(--good);box-shadow:0 6px 0 var(--line)}
@@ -1182,11 +1182,14 @@
   }
 
   // ---------- Shareable result ----------
-  // The twenty quarters read as a grid of squares, so a term tells its own
-  // story at a glance: the run of green, the crisis, the recovery.
+  // The twenty quarters read as a grid of squares, four to a row so each line is
+  // one calendar year of the term: the run of green, the crisis, the recovery.
   var shareText = "";
   function buildShare(medal, rating, earned){
-    var grid = S.dots.map(function(d){ return d === "hit" ? "🟩" : "🟥"; }).join("");
+    var sq = S.dots.map(function(d){ return d === "hit" ? "🟩" : "🟥"; });
+    var rows = [];
+    for (var r=0;r<sq.length;r+=4) rows.push(sq.slice(r, r+4).join(""));
+    var grid = rows.join("\n");
     var lines = [
       "🏦 BoE Governor — " + QNAMES[0] + " to " + QNAMES[QUARTERS-1],
       medal + " " + rating + " · " + Math.round(S.score) + " pts",
@@ -1215,12 +1218,32 @@
     setTimeout(function(){ btn.className = "go share"; btn.textContent = "SHARE RESULT"; }, 2200);
   }
 
+  // Every step falls through to the next on failure. Only a genuine user
+  // cancellation is silent — an earlier version treated *any* rejected share as
+  // a cancellation, which made the button dead inside iframes that disallow
+  // web-share, since the clipboard fallback was never reached.
   $("share").addEventListener("click", function(){
-    if (navigator.share){
-      navigator.share({ text: shareText }).then(function(){ shareDone("SHARED ✓"); })
-        .catch(function(){ /* dismissed — say nothing */ });
-      return;
+    var canShare = !!navigator.share &&
+      (navigator.canShare ? safeCanShare({ text: shareText }) : true);
+    if (canShare){
+      try {
+        navigator.share({ text: shareText })
+          .then(function(){ shareDone("SHARED ✓"); })
+          .catch(function(err){
+            if (err && err.name === "AbortError") return;   // they backed out
+            copyToClipboard();                              // blocked, not cancelled
+          });
+        return;
+      } catch(e){ /* threw synchronously — fall through */ }
     }
+    copyToClipboard();
+  });
+
+  function safeCanShare(data){
+    try { return navigator.canShare(data); } catch(e){ return false; }
+  }
+
+  function copyToClipboard(){
     if (navigator.clipboard && navigator.clipboard.writeText){
       navigator.clipboard.writeText(shareText)
         .then(function(){ shareDone("COPIED ✓"); })
@@ -1228,16 +1251,23 @@
       return;
     }
     showFallback();
-  });
+  }
 
-  // Clipboard is blocked on insecure origins and some in-app browsers: show the
-  // text so it can still be selected by hand.
+  // Last resorts: the old execCommand copy, and failing that leave the text on
+  // screen selected so it can be copied by hand.
   function showFallback(){
     var t = $("shareFallback");
     t.value = shareText;
     t.classList.remove("hide");
     t.focus(); t.select();
-    shareDone("SELECT & COPY");
+    var copied = false;
+    try { copied = document.execCommand("copy"); } catch(e){}
+    if (copied){
+      t.classList.add("hide");
+      shareDone("COPIED ✓");
+    } else {
+      shareDone("SELECT & COPY");
+    }
   }
 
   // ---------- Wiring ----------
