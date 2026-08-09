@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bank of England Governor</title>
+<meta name="description" content="Set UK Bank Rate for six quarters. Keep inflation and unemployment inside the target bands. A 2-minute UK economics game.">
+<!--
+  To activate advertising, add this to <head>:
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-REPLACE_ME" crossorigin="anonymous"></script>
+-->
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel-2:#1c232c; --line:#2b3440;
+    --ink:#e8edf3; --muted:#93a1b0;
+    --good:#2ea043; --good-dim:rgba(46,160,67,.18);
+    --warn:#d29922; --bad:#f0533f;
+    --infl:#5aa9ff; --unemp:#ffb454;
+    --accent:#c8102e; /* BoE red */
+    --r:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-text-size-adjust:100%;
+    padding:env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 16px);
+    overflow-x:hidden;
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:12px}
+  header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .crest{width:36px;height:36px;border-radius:9px;background:var(--accent);
+    display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff;flex:0 0 auto}
+  h1{font-size:17px;margin:0;line-height:1.15;letter-spacing:-.2px}
+  h1 small{display:block;font-weight:500;font-size:12px;color:var(--muted);letter-spacing:0}
+  .scorebox{margin-left:auto;text-align:right;flex:0 0 auto}
+  .scorebox .n{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+  .scorebox .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;margin-bottom:10px}
+
+  .qbar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:10px}
+  .pips{display:flex;gap:4px;margin-left:auto}
+  .pip{width:16px;height:5px;border-radius:3px;background:var(--line)}
+  .pip.done{background:var(--good)} .pip.miss{background:var(--bad)} .pip.now{background:var(--muted)}
+
+  .gauge+.gauge{margin-top:14px}
+  .gauge .top{display:flex;align-items:baseline;gap:8px;font-size:13px;margin-bottom:6px}
+  .gauge .top .name{font-weight:600}
+  .gauge .top .val{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:800;font-size:16px}
+  .gauge .top .tgt{font-size:11px;color:var(--muted)}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .track{position:relative;height:26px;border-radius:8px;background:var(--panel-2);
+    border:1px solid var(--line);overflow:hidden}
+  .zone{position:absolute;top:0;bottom:0;background:var(--good-dim);
+    border-left:1px solid rgba(46,160,67,.5);border-right:1px solid rgba(46,160,67,.5)}
+  .marker{position:absolute;top:-3px;bottom:-3px;width:3px;border-radius:2px;background:var(--ink);
+    transform:translateX(-1.5px);transition:left .5s cubic-bezier(.3,.7,.3,1)}
+  .marker.out{background:var(--bad);box-shadow:0 0 0 3px rgba(240,83,63,.2)}
+  .ticks{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:3px}
+
+  canvas{width:100%;height:190px;display:block;touch-action:manipulation}
+  .legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+
+  .shock{border:1px solid var(--line);background:var(--panel-2);border-radius:var(--r);
+    padding:11px 12px;margin-bottom:10px;font-size:13px;display:flex;gap:9px;align-items:flex-start}
+  .shock .icon{font-size:16px;line-height:1.2}
+  .shock.hot{border-color:rgba(240,83,63,.55);background:rgba(240,83,63,.10)}
+  .shock.hot .t{color:#ff9b8b}
+  .shock .t{font-weight:700;display:block;margin-bottom:1px}
+  .shock .s{color:var(--muted)}
+
+  label.slabel{display:flex;align-items:baseline;font-size:13px;margin-bottom:2px}
+  label.slabel .big{margin-left:auto;font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+  .delta{font-size:12px;color:var(--muted);min-height:18px}
+  .delta.up{color:var(--bad)} .delta.down{color:var(--infl)}
+  input[type=range]{width:100%;height:44px;margin:0;background:transparent;-webkit-appearance:none;appearance:none}
+  input[type=range]:focus{outline:none}
+  input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:6px;
+    background:linear-gradient(90deg,var(--infl),var(--warn),var(--bad))}
+  input[type=range]::-moz-range-track{height:8px;border-radius:6px;
+    background:linear-gradient(90deg,var(--infl),var(--warn),var(--bad))}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;
+    background:#fff;border:3px solid var(--accent);margin-top:-11px;cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;
+    background:#fff;border:3px solid var(--accent);cursor:pointer}
+  .rticks{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+
+  button{font:inherit;border-radius:11px;border:1px solid transparent;min-height:48px;
+    width:100%;cursor:pointer;font-weight:700}
+  .btn-primary{background:var(--accent);color:#fff;font-size:17px}
+  .btn-primary:active{filter:brightness(.9)}
+  .btn-ghost{background:transparent;color:var(--muted);border-color:var(--line);min-height:42px;
+    font-size:14px;font-weight:600;margin-top:8px}
+
+  .ad-slot{min-height:104px;border:1px dashed var(--line);border-radius:var(--r);
+    display:grid;place-items:center;text-align:center;color:#5c6b7a;font-size:11px;
+    letter-spacing:1.4px;text-transform:uppercase;margin-bottom:10px;padding:10px;
+    background:repeating-linear-gradient(45deg,transparent,transparent 9px,rgba(255,255,255,.015) 9px,rgba(255,255,255,.015) 18px)}
+
+  .end h2{margin:2px 0 2px;font-size:20px}
+  .end .verdict{font-size:13px;color:var(--muted);margin-bottom:10px}
+  .rows{font-size:13px}
+  .row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:0;font-weight:800;font-size:15px;padding-top:9px}
+  .row .v{font-variant-numeric:tabular-nums}
+  .pos{color:var(--good)} .neg{color:var(--bad)}
+  .hide{display:none !important}
+  footer{font-size:11px;color:#5c6b7a;text-align:center;margin-top:6px;line-height:1.5}
+  @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="crest">£</div>
+    <h1>Bank of England Governor<small>Threadneedle Street · Aug 2026</small></h1>
+    <div class="scorebox"><div class="n" id="score" aria-live="polite">0</div><div class="l">Score</div></div>
+  </header>
+
+  <!-- ===== AD SLOT (top banner) ===== -->
+  <div class="ad-slot" id="ad-top">
+    Advertisement
+    <!--
+    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-REPLACE_ME"
+         data-ad-slot="REPLACE_ME" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    -->
+  </div>
+
+  <div id="game">
+    <div class="card">
+      <div class="qbar"><span id="qlabel">Quarter 1 of 6 · Q3 2026</span>
+        <div class="pips" id="pips" aria-hidden="true"></div>
+      </div>
+
+      <div class="gauge">
+        <div class="top">
+          <span class="dot" style="background:var(--infl)"></span>
+          <span class="name">CPI Inflation</span>
+          <span class="tgt">target 2% ±1</span>
+          <span class="val" id="inflVal">2.6%</span>
+        </div>
+        <div class="track"><div class="zone" id="inflZone"></div><div class="marker" id="inflMark"></div></div>
+        <div class="ticks"><span>0%</span><span>2%</span><span>4%</span><span>6%</span></div>
+      </div>
+
+      <div class="gauge">
+        <div class="top">
+          <span class="dot" style="background:var(--unemp)"></span>
+          <span class="name">Unemployment</span>
+          <span class="tgt">goal 4% ±1</span>
+          <span class="val" id="unVal">4.9%</span>
+        </div>
+        <div class="track"><div class="zone" id="unZone"></div><div class="marker" id="unMark"></div></div>
+        <div class="ticks"><span>2%</span><span>4%</span><span>6%</span><span>8%</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <canvas id="chart" aria-label="Chart tracking inflation and unemployment by quarter"></canvas>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--infl)"></span> Inflation</span>
+        <span><span class="dot" style="background:var(--unemp)"></span> Unemployment</span>
+        <span><span class="dot" style="background:#7b8794"></span> Bank Rate</span>
+        <span style="opacity:.8">Green = target band</span>
+      </div>
+    </div>
+
+    <div class="shock" id="shock" aria-live="polite">
+      <span class="icon" id="shockIcon">📊</span>
+      <span><span class="t" id="shockTitle">Markets calm</span>
+      <span class="s" id="shockText">Brent steady. The MPC awaits your decision.</span></span>
+    </div>
+
+    <div class="card">
+      <label class="slabel" for="rate">Bank Rate <span class="big" id="rateVal">3.75%</span></label>
+      <input type="range" id="rate" min="0" max="5" step="0.25" value="3.75"
+             aria-describedby="delta">
+      <div class="rticks"><span>0%</span><span>1.25%</span><span>2.5%</span><span>3.75%</span><span>5%</span></div>
+      <div class="delta" id="delta" aria-live="polite">Hold at 3.75%</div>
+      <button class="btn-primary" id="next">Set Rate &amp; Advance →</button>
+      <button class="btn-ghost" id="restart1">Restart</button>
+    </div>
+  </div>
+
+  <div id="end" class="card end hide">
+    <h2 id="rating">—</h2>
+    <div class="verdict" id="verdict"></div>
+    <div class="rows" id="breakdown"></div>
+    <!-- ===== AD SLOT (results) ===== -->
+    <div class="ad-slot" style="margin:12px 0 4px">
+      Advertisement
+      <!--
+      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-REPLACE_ME"
+           data-ad-slot="REPLACE_ME" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+      -->
+    </div>
+    <button class="btn-primary" id="restart2">Play Again</button>
+  </div>
+
+  <footer>Simplified model for entertainment. Not economic advice, and definitely not the MPC.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Calibration (August 2026) ----------
+  var START = { rate:3.75, inflation:2.6, unemployment:4.9 };
+  var NEUTRAL = 3.0;                     // estimated nominal neutral rate
+  var INFL_BAND = { lo:1.0, hi:3.0 };    // 2% +/- 1
+  var UNEMP_BAND = { lo:3.0, hi:5.0 };   // 4% +/- 1
+  var QUARTERS = 6;
+  var CRISIS = 3.5;
+  var QNAMES = ["Q3 2026","Q4 2026","Q1 2027","Q2 2027","Q3 2027","Q4 2027"];
+
+  var SHOCKS = [
+    ["🛢️","OPEC+ supply disruption!","Output quotas slashed overnight — Brent jumps $14."],
+    ["⚓","Strait of Hormuz transits halted","Tanker insurance spikes; UK wholesale gas follows crude up."],
+    ["🔥","Gulf refinery outage","Diesel cracks blow out. Forecourt prices to pass through within weeks."],
+    ["🚢","Red Sea convoys rerouted","Freight rates surge; imported goods inflation picks up."],
+    ["⚡","Interconnector curtailed","European gas competition bids up UK winter contracts."]
+  ];
+  var CALM = [
+    ["📊","Markets calm","Brent steady. The MPC awaits your decision."],
+    ["🗞️","No fresh energy shock","Gilt markets quiet. Sterling little changed."],
+    ["🏦","Orderly quarter","Wage settlements broadly in line with the staff forecast."]
+  ];
+
+  // ---------- State ----------
+  var S;
+  function reset(){
+    S = {
+      q:0,
+      rate:START.rate,          // rate the player has set for the coming quarter
+      lagged:START.rate,        // rate that acts on the economy this quarter (one-quarter lag)
+      infl:START.inflation,
+      unemp:START.unemployment,
+      score:0,
+      crisisFired:false,
+      crisisPenalty:0,
+      bandPoints:0,
+      missPoints:0,
+      shockCarry:0,
+      shocksHit:0,
+      hist:[{q:0,infl:START.inflation,unemp:START.unemployment,rate:START.rate}],
+      pips:[],
+      over:false
+    };
+  }
+
+  // ---------- Helpers ----------
+  var $ = function(id){ return document.getElementById(id); };
+  function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+  function inBand(v,b){ return v>=b.lo && v<=b.hi; }
+  function outBy(v,b){ return v<b.lo ? b.lo-v : (v>b.hi ? v-b.hi : 0); }
+  function pct(v){ return v.toFixed(2).replace(/\.?0+$/,'') + "%"; }
+  function f1(v){ return v.toFixed(1)+"%"; }
+
+  // ---------- Economy ----------
+  function step(){
+    var gap = S.lagged - NEUTRAL;                 // policy stance
+    var shock = 0, ev;
+    if (Math.random() < 0.25) {
+      ev = SHOCKS[(Math.random()*SHOCKS.length)|0];
+      shock = 0.30; S.shocksHit++;
+    } else {
+      ev = CALM[(Math.random()*CALM.length)|0];
+    }
+    var totalShock = shock + S.shockCarry;
+    var noise = (Math.random()-0.5)*0.16;
+
+    S.infl  = clamp(S.infl  + (-0.35*gap) - 0.25*(S.infl - 2.0) + totalShock + noise, -1, 12);
+    S.unemp = clamp(S.unemp + ( 0.18*gap) - 0.12*(S.unemp - 4.4) + 0.10*S.shockCarry, 2.5, 12);
+
+    S.shockCarry = shock > 0 ? 0.10 : 0;
+    S.lagged = S.rate;    // this quarter's decision bites next quarter
+    S.q++;
+
+    // scoring
+    var ok = inBand(S.infl, INFL_BAND) && inBand(S.unemp, UNEMP_BAND);
+    if (ok) { S.bandPoints += 2; S.score += 2; }
+    var miss = (outBy(S.infl, INFL_BAND) + outBy(S.unemp, UNEMP_BAND)) * 10; // per 0.1pp
+    if (miss > 0) { S.missPoints += miss; S.score -= miss; }
+    if (!S.crisisFired && S.infl >= CRISIS) {
+      S.crisisFired = true; S.crisisPenalty = 8; S.score -= 8;
+    }
+    S.pips.push(ok ? "done" : "miss");
+    S.hist.push({q:S.q, infl:S.infl, unemp:S.unemp, rate:S.lagged});
+    return ev;
+  }
+
+  // ---------- Rendering ----------
+  function setShock(ev, crisis){
+    $("shockIcon").textContent = crisis ? "🚨" : ev[0];
+    $("shockTitle").textContent = crisis ? "Credibility crisis!" : ev[1];
+    $("shockText").textContent = crisis
+      ? "Inflation above 3.5% — the Governor must write to the Chancellor. −8 points."
+      : ev[2];
+    $("shock").className = "shock" + ((crisis || ev === null || SHOCKS.indexOf(ev) > -1) ? " hot" : "");
+  }
+
+  function gauge(markId, zoneId, valId, value, band, min, max){
+    var span = max - min;
+    var left = clamp((value - min)/span, 0, 1)*100;
+    var zl = clamp((band.lo - min)/span,0,1)*100;
+    var zr = clamp((band.hi - min)/span,0,1)*100;
+    var z = $(zoneId); z.style.left = zl+"%"; z.style.width = (zr-zl)+"%";
+    var m = $(markId); m.style.left = left+"%";
+    m.className = "marker" + (inBand(value, band) ? "" : " out");
+    var v = $(valId); v.textContent = f1(value);
+    v.style.color = inBand(value, band) ? "var(--ink)" : "var(--bad)";
+  }
+
+  function renderPips(){
+    var h = "";
+    for (var i=0;i<QUARTERS;i++){
+      var c = S.pips[i] ? S.pips[i] : (i === S.q ? "now" : "");
+      h += '<span class="pip '+c+'"></span>';
+    }
+    $("pips").innerHTML = h;
+  }
+
+  function render(){
+    $("score").textContent = Math.round(S.score);
+    $("score").style.color = S.score < 0 ? "var(--bad)" : "var(--ink)";
+    $("qlabel").textContent = S.over
+      ? "Term complete · 6 quarters"
+      : "Quarter " + (S.q+1) + " of " + QUARTERS + " · " + QNAMES[S.q];
+    gauge("inflMark","inflZone","inflVal", S.infl, INFL_BAND, 0, 6);
+    gauge("unMark","unZone","unVal", S.unemp, UNEMP_BAND, 2, 8);
+    renderPips();
+    $("next").textContent = (S.q === QUARTERS-1) ? "Final Decision → Results" : "Set Rate & Advance →";
+    drawChart();
+  }
+
+  function updateRateUI(){
+    $("rateVal").textContent = pct(S.rate);
+    var d = S.rate - S.lagged, el = $("delta");
+    if (Math.abs(d) < 0.001){ el.textContent = "Hold at " + pct(S.rate); el.className = "delta"; }
+    else if (d > 0){ el.textContent = "+" + d.toFixed(2).replace(/0$/,'') + "pp hike — cools prices, costs jobs (with a lag)";
+                     el.className = "delta up"; }
+    else { el.textContent = d.toFixed(2).replace(/0$/,'') + "pp cut — supports jobs, risks inflation";
+           el.className = "delta down"; }
+  }
+
+  // ---------- Chart ----------
+  var cv = $("chart"), ctx = cv.getContext("2d");
+  function sizeCanvas(){
+    var dpr = window.devicePixelRatio || 1;
+    var w = cv.clientWidth, h = cv.clientHeight;
+    cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    return {w:w,h:h};
+  }
+  function drawChart(){
+    var d = sizeCanvas(), w = d.w, h = d.h;
+    var padL = 28, padR = 10, padT = 10, padB = 20;
+    var W = w-padL-padR, H = h-padT-padB;
+    var YMIN = 0, YMAX = 8;
+    var X = function(q){ return padL + (q/(QUARTERS)) * W; };
+    var Y = function(v){ return padT + (1 - (clamp(v,YMIN,YMAX)-YMIN)/(YMAX-YMIN)) * H; };
+
+    ctx.clearRect(0,0,w,h);
+
+    // target bands
+    ctx.fillStyle = "rgba(46,160,67,.13)";
+    ctx.fillRect(padL, Y(INFL_BAND.hi), W, Y(INFL_BAND.lo)-Y(INFL_BAND.hi));
+    ctx.fillStyle = "rgba(255,180,84,.09)";
+    ctx.fillRect(padL, Y(UNEMP_BAND.hi), W, Y(UNEMP_BAND.lo)-Y(UNEMP_BAND.hi));
+
+    // grid + axis labels
+    ctx.strokeStyle = "#2b3440"; ctx.lineWidth = 1;
+    ctx.fillStyle = "#93a1b0"; ctx.font = "10px -apple-system,system-ui,sans-serif";
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    for (var v=0; v<=8; v+=2){
+      var y = Math.round(Y(v))+0.5;
+      ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(w-padR,y); ctx.stroke();
+      ctx.fillText(v+"%", padL-6, y);
+    }
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    for (var q=0;q<=QUARTERS;q++){
+      ctx.fillText(q===0?"now":"Q"+q, X(q), h-padB+5);
+    }
+
+    function line(key, colour, dash, width){
+      ctx.save();
+      ctx.setLineDash(dash); ctx.strokeStyle = colour; ctx.lineWidth = width;
+      ctx.lineJoin = "round"; ctx.beginPath();
+      S.hist.forEach(function(p,i){
+        var x = X(p.q), y = Y(p[key]);
+        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.stroke(); ctx.restore();
+      if (dash.length) return;
+      ctx.fillStyle = colour;
+      S.hist.forEach(function(p){
+        ctx.beginPath(); ctx.arc(X(p.q), Y(p[key]), 3, 0, Math.PI*2); ctx.fill();
+      });
+    }
+    line("rate", "#7b8794", [3,3], 1.5);
+    line("unemp", "#ffb454", [], 2.5);
+    line("infl", "#5aa9ff", [], 2.5);
+  }
+
+  // ---------- End screen ----------
+  function finish(){
+    S.over = true;
+    var bonus = (S.unemp < START.unemployment) ? 5 : 0;
+    S.score += bonus;
+
+    var rows = [
+      ["Quarters in both bands", "+" + S.bandPoints, S.bandPoints>0],
+      ["Deviation from bands", (S.missPoints < 0.5 ? "0" : "−" + Math.round(S.missPoints)), S.missPoints < 0.5 ? null : false],
+      ["Energy shocks weathered", String(S.shocksHit), null]
+    ];
+    if (S.crisisPenalty) rows.push(["Credibility crisis (CPI ≥ 3.5%)","−8", false]);
+    rows.push([ (bonus? "Unemployment improving (bonus)" : "Unemployment not improved"), (bonus?"+5":"0"), !!bonus ]);
+    rows.push(["Final score", String(Math.round(S.score)), null]);
+
+    $("breakdown").innerHTML = rows.map(function(r){
+      var cls = r[2]===null ? "" : (r[2] ? "pos" : "neg");
+      return '<div class="row"><span>'+r[0]+'</span><span class="v '+cls+'">'+r[1]+'</span></div>';
+    }).join("");
+
+    var s = S.score, rating, verdict;
+    if (s >= 10){ rating = "🎖️ Reappointed for a second term";
+      verdict = "Textbook stewardship. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+" — the Chancellor is delighted."; }
+    else if (s >= 2){ rating = "🤝 Term completed, credibility intact";
+      verdict = "A serviceable record. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+". The markets can live with it."; }
+    else if (s >= -10){ rating = "📉 Under review by the Treasury Select Committee";
+      verdict = "Awkward hearings ahead. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
+    else { rating = "💥 Resign in disgrace";
+      verdict = "The letters to the Chancellor piled up. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
+    $("rating").textContent = rating;
+    $("verdict").textContent = verdict;
+
+    $("game").classList.add("hide");
+    $("end").classList.remove("hide");
+    $("score").textContent = Math.round(S.score);
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+
+  // ---------- Wiring ----------
+  var slider = $("rate");
+  slider.addEventListener("input", function(){
+    S.rate = parseFloat(slider.value);
+    updateRateUI();
+  });
+
+  $("next").addEventListener("click", function(){
+    if (S.over) return;
+    var wasCrisis = S.crisisFired;
+    var ev = step();
+    setShock(ev, !wasCrisis && S.crisisFired);
+    render();
+    if (S.q >= QUARTERS) finish();
+    else updateRateUI();
+  });
+
+  function restart(){
+    reset();
+    $("end").classList.add("hide");
+    $("game").classList.remove("hide");
+    slider.value = String(S.rate);
+    setShock(CALM[0], false);
+    updateRateUI();
+    render();
+    window.scrollTo({top:0});
+  }
+  $("restart1").addEventListener("click", restart);
+  $("restart2").addEventListener("click", restart);
+
+  window.addEventListener("resize", function(){ drawChart(); });
+
+  restart();
+})();
+</script>
+</body>
+</html>
