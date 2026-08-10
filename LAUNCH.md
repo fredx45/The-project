@@ -1,5 +1,66 @@
 # Launch checklist
 
+## Doing this on your phone
+
+Three jobs, in this order. DNS first — GitHub checks it, so doing Pages first
+just gives you an error. All of it in Safari; the Cloudflare app cannot edit DNS.
+
+### 1. DNS (Cloudflare, ~5 minutes)
+
+1. Safari → **dash.cloudflare.com** → sign in
+2. Tap **holdorhike.com**
+3. Tap **DNS** → **Records**
+4. Delete any **A** or **CNAME** record already sitting on `@` or `www`
+5. **Add record** five times:
+
+| Type | Name | Points to |
+|---|---|---|
+| A | `@` | `185.199.108.153` |
+| A | `@` | `185.199.109.153` |
+| A | `@` | `185.199.110.153` |
+| A | `@` | `185.199.111.153` |
+| CNAME | `www` | `fredx45.github.io` |
+
+**The thing that catches everyone out:** each record has a cloud icon. It must be
+**grey (DNS only)**, never orange. Tap it to toggle. An orange cloud means
+Cloudflare proxies the traffic, which stops GitHub issuing the HTTPS certificate
+— and it fails in a way that is hard to diagnose.
+
+### 2. GitHub Pages (~3 minutes, then up to an hour of waiting)
+
+**This is the step that makes the site public.** Nothing before it is visible to
+anyone.
+
+1. Safari → **github.com/fredx45/The-project**
+2. Tap **aA** in the address bar → **Request Desktop Website**. The mobile
+   layout hides parts of Settings, so this matters.
+3. **Settings** → find **Pages** in the left sidebar
+4. Source: **Deploy from a branch**
+5. Branch: **claude/boe-governor-game-2h8qag**, folder **/ (root)** → **Save**
+6. Custom domain: `holdorhike.com` → **Save**
+7. Wait for the DNS check to pass (a few minutes), then tick **Enforce HTTPS**
+
+If the site looks broken straight after, that is normal — the certificate can
+take up to an hour.
+
+### 3. Email forwarding (Cloudflare, ~5 minutes)
+
+1. **dash.cloudflare.com** → **holdorhike.com** → **Email** → **Email Routing**
+2. **Get started**
+3. Create the address `hello` and forward it to your normal inbox
+4. Cloudflare emails that inbox a verification link — tap it
+
+Cloudflare adds its own mail records automatically. They do not clash with the
+records from step 1.
+
+### Then
+
+- Check **https://holdorhike.com** loads the game
+- Send me the date you want on the privacy policy — it is the last unfilled
+  field, and you should not apply to AdSense until it is done
+
+---
+
 Everything still outstanding before this site can go live with ads, in the order
 worth doing it. Run `node preflight.js` at any point to see what is left.
 
@@ -43,43 +104,23 @@ hard way later:
 
 ---
 
-## 1. Fill in the two remaining written fields
+## 1. The last written field
 
-The operator is already set to Hold or Hike. What is left lives in one block at
-the top of `privacy.html`, plus the same contact address in `about.html`. Both
-render in loud amber on the live page until replaced, so an unfilled field is
-obvious.
+Operator and contact address are both filled in. One placeholder remains, in the
+block at the top of `privacy.html`. It renders in loud amber on the live page
+until replaced, so it cannot be missed.
 
 | Placeholder | Files | Replace with |
 |---|---|---|
-| `[your email address]` | `privacy.html`, `about.html` | `hello@holdorhike.com` once the domain and email routing exist. Never a personal address — published ones get scraped within days. |
 | `[date you publish]` | `privacy.html` | The date you actually publish, e.g. `12 August 2026`. |
 
-## 2. Buy the domain and point it at GitHub Pages
+## 2. Hosting — reference
 
-Buy **holdorhike.com** — Cloudflare Registrar if it carries the TLD (at-cost
-pricing, free WHOIS privacy, and the free email routing you need in step 5),
-otherwise Namecheap. Turn WHOIS privacy on. For any `.uk` domain, use Nominet's
-address opt-out for non-trading individuals.
+Done in the repo already: every absolute URL points at `https://holdorhike.com`
+and the `CNAME` file exists. What is left is the dashboard work in the phone
+guide above. The values, for reference:
 
-AdSense will not approve a `github.io` subdomain, so the real domain comes
-first. Buying it alone publishes nothing — the four steps below are what make
-the site visible, and they are yours to trigger when ready.
-
-Swap the placeholder host everywhere in one command, from the repo root:
-
-```sh
-grep -rl 'example\.com' --include='*.html' --include='*.xml' . \
-  | xargs sed -i 's|https://example\.com|https://YOURDOMAIN|g'
-```
-
-Then create a `CNAME` file at the repo root containing just your domain:
-
-```sh
-echo 'holdorhike.com' > CNAME
-```
-
-**DNS at your registrar** — four A records for the apex, pointing at GitHub:
+**DNS** — four A records on the apex, pointing at GitHub:
 
 ```
 185.199.108.153
@@ -90,9 +131,11 @@ echo 'holdorhike.com' > CNAME
 
 Plus a `CNAME` record for `www` pointing at `fredx45.github.io`.
 
-**Enable Pages**: repo Settings → Pages → Source: Deploy from a branch →
-`claude/boe-governor-game-2h8qag` → `/ (root)`. Tick "Enforce HTTPS" once the
-certificate has been issued (can take an hour).
+**Pages**: Settings → Pages → Deploy from a branch →
+`claude/boe-governor-game-2h8qag` → `/ (root)`, custom domain
+`holdorhike.com`, then Enforce HTTPS once the certificate is issued.
+
+All records must be **DNS only** in Cloudflare, not proxied.
 
 ## 3. Apply to AdSense
 
@@ -101,7 +144,7 @@ with bracketed placeholders will be rejected.
 
 1. Create the account and add the site.
 2. Put your publisher ID into `ads.txt`, replacing `pub-REPLACE_ME`. The file
-   must be reachable at `https://yourdomain/ads.txt`.
+   must be reachable at `https://holdorhike.com/ads.txt`.
 3. Create three display units and paste the IDs into the `ADS` object near the
    top of the script in `index.html`:
 
@@ -123,13 +166,6 @@ route to a permanent ban.
 Realistic expectation: two to four weeks, rejection on first attempt is common,
 and UK rates for a game like this run about £1–3 per thousand views.
 
-## 4a. Set up the contact address
-
-In Cloudflare, enable **Email Routing** for the domain and forward
-`hello@holdorhike.com` to your existing inbox. Free, takes about five minutes,
-and keeps your personal address off the site. Then fill it into `privacy.html`
-and `about.html` along with the publish date.
-
 ## 4. Turn on analytics
 
 Create a GA4 property, then set the measurement ID in `index.html`:
@@ -146,7 +182,7 @@ describes them.
 
 - [ ] `node preflight.js` exits clean
 - [ ] All four pages load over HTTPS: game, how-it-works, about, privacy
-- [ ] `https://yourdomain/ads.txt` returns plain text
+- [ ] `https://holdorhike.com/ads.txt` returns plain text
 - [ ] Paste the URL into Slack or WhatsApp — the preview card should show
       `share.png`, not a bare link
 - [ ] Play a full term on a real phone, then tap SHARE RESULT and confirm the
