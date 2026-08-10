@@ -96,8 +96,10 @@ hard way later:
 - [ ] **Chain-of-command approval.** An ad-funded site is a secondary occupation
       with income attached and will normally need permission. If the answer is
       no, none of the rest matters — so ask first.
-- [ ] **Tax.** Ad revenue, however small, is self-employed income and brings a
-      self-assessment obligation.
+- [ ] **Tax.** Ad revenue and tips alike, however small, are self-employed
+      income and bring a self-assessment obligation. Donations are generally
+      outside the scope of VAT, unlike selling access to something — which is
+      what made the paywall idea awkward and the tip jar simple.
 - [ ] **ICO data protection fee** (~£52/year). Ads and analytics are commercial
       processing, so check the ICO's self-assessment tool before launch.
 
@@ -158,6 +160,32 @@ route to a permanent ban.
 
 Realistic expectation: two to four weeks, rejection on first attempt is common,
 and UK rates for a game like this run about £1–3 per thousand views.
+
+## 3a. If AdSense rejects
+
+Rejection is common and not the end. In order of what to try:
+
+1. **Fix and reapply.** There is no limit on attempts, and AdSense pays better
+   than every alternative below, so it is worth two or three goes. The usual
+   reason given is "low value content": add real writing, wait a couple of
+   weeks, resubmit. The FAQ and how-it-works pages exist for exactly this.
+2. **Ezoic.** Accepts much smaller sites, respectable rates, but it inserts its
+   own layer via Cloudflare or a script and can be heavy-handed with a carefully
+   built mobile layout.
+3. **Media.net.** Contextual ads from the Yahoo/Bing network. Standards similar
+   to AdSense, and it earns mainly on US traffic, which this site will not have
+   much of.
+4. **A direct sponsor.** At low volume this beats programmatic. One "supported
+   by" line sold to a fintech or an economics newsletter can be worth more than
+   months of ad pennies, and it suits the audience.
+5. **A tip jar.** No approval, no review, five minutes.
+
+**Deliberately not used:** Adsterra, PropellerAds and similar. They approve
+almost anyone but lean on pop-unders and redirects, which would wreck a clean
+three-minute game.
+
+The honest bottom line: traffic matters far more than the network. An approved
+site with no visitors earns nothing.
 
 ## 4. Turn on analytics
 
