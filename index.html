@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bank of England Governor</title>
+<title>Hold or Hike — the Bank of England game</title>
 <meta name="description" content="Twenty quarters. Two targets. Set UK Bank Rate, survive the shocks, keep your job.">
 <meta name="theme-color" content="#0A0E1A">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8246785320309196" crossorigin="anonymous"></script>
@@ -11,15 +11,15 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23E0203C'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='40' font-weight='bold' text-anchor='middle' fill='white'%3E%C2%A3%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="https://holdorhike.com/apple-touch-icon.png">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Bank of England Governor">
-<meta property="og:title" content="Bank of England Governor">
+<meta property="og:site_name" content="Hold or Hike">
+<meta property="og:title" content="Hold or Hike — the Bank of England game">
 <meta property="og:description" content="Twenty quarters. Two targets. Set UK Bank Rate, survive the shocks, keep your job.">
 <meta property="og:url" content="https://holdorhike.com/">
 <meta property="og:image" content="https://holdorhike.com/share.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Bank of England Governor">
+<meta name="twitter:title" content="Hold or Hike — the Bank of England game">
 <meta name="twitter:description" content="Can you keep inflation and unemployment on target for five years?">
 <meta name="twitter:image" content="https://holdorhike.com/share.png">
 <!--
@@ -294,9 +294,10 @@
   <div id="intro" class="screen">
     <div class="titleblock">
       <div class="crest">£</div>
-      <h1>Bank of England<br><span>Governor</span></h1>
-      <p class="standfirst">August 2026. Inflation is 2.6%, unemployment 4.9%,
-        and the Middle East is on fire. You have five years.</p>
+      <h1>Hold or<br><span>Hike</span></h1>
+      <p class="standfirst">You are Governor of the Bank of England. It is August 2026:
+        inflation is 2.6%, unemployment 4.9%, and the Middle East is on fire.
+        You have five years.</p>
     </div>
 
     <div class="career hide" id="career">
@@ -1193,7 +1194,7 @@
     for (var r=0;r<sq.length;r+=4) rows.push(sq.slice(r, r+4).join(""));
     var grid = rows.join("\n");
     var lines = [
-      "🏦 BoE Governor — " + QNAMES[0] + " to " + QNAMES[QUARTERS-1],
+      "🏦 Hold or Hike — " + QNAMES[0] + " to " + QNAMES[QUARTERS-1],
       medal + " " + rating + " · " + Math.round(S.score) + " pts",
       grid,
       "Peak CPI " + f1(S.peakInfl) + (S.crisisName ? " · survived: " + S.crisisName.replace(/!$/,"") : "")
