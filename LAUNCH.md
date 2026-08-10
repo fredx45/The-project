@@ -8,8 +8,8 @@ worth doing it. Run `node preflight.js` at any point to see what is left.
 | | |
 |---|---|
 | **Operator** | **Hold or Hike** — a trading name, sole trader, no company |
-| **Target domain** | **holdorhike.com** — not yet purchased |
-| **Contact** | `hello@holdorhike.com`, via Cloudflare Email Routing (free) once the domain exists |
+| **Domain** | **holdorhike.com** — purchased, wired into the site |
+| **Contact** | `hello@holdorhike.com` — in the pages; still needs the forwarding rule creating |
 | **Ad network** | Google AdSense |
 | **Analytics** | Google Analytics 4 |
 
