@@ -460,11 +460,16 @@
   // so a script appended at runtime is invisible to it. This only fills the
   // reserved boxes with ad units, and only once real slot ids exist.
   function initAds(){
-    if (!ADS.client) return;                       // placeholders stay as they are
     var boxes = document.querySelectorAll("[data-ad]");
     for (var i=0;i<boxes.length;i++){
       var box = boxes[i], slot = ADS.slots[box.getAttribute("data-ad")];
-      if (!slot) continue;
+      // No slot yet — hide the reserved space rather than show visitors an
+      // empty dashed box labelled "Advertisement".
+      if (!slot || !ADS.client){
+        var wrap = box.closest(".adwrap") || box;
+        wrap.style.display = "none";
+        continue;
+      }
       box.textContent = "";
       box.classList.add("live");
       var ins = document.createElement("ins");
