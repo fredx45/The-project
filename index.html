@@ -6,6 +6,7 @@
 <title>Bank of England Governor</title>
 <meta name="description" content="Twenty quarters. Two targets. Set UK Bank Rate, survive the shocks, keep your job.">
 <meta name="theme-color" content="#0A0E1A">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8246785320309196" crossorigin="anonymous"></script>
 <link rel="canonical" href="https://holdorhike.com/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23E0203C'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='40' font-weight='bold' text-anchor='middle' fill='white'%3E%C2%A3%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="https://holdorhike.com/apple-touch-icon.png">
@@ -454,14 +455,12 @@
     try { window.gtag("event", name, params || {}); } catch(e){}
   }
 
+  // The loader itself is a static tag in <head>, not injected here: Google's
+  // verification crawler reads the served HTML and does not run our JavaScript,
+  // so a script appended at runtime is invisible to it. This only fills the
+  // reserved boxes with ad units, and only once real slot ids exist.
   function initAds(){
     if (!ADS.client) return;                       // placeholders stay as they are
-    var sc = document.createElement("script");
-    sc.async = true;
-    sc.crossOrigin = "anonymous";
-    sc.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" + ADS.client;
-    document.head.appendChild(sc);
-
     var boxes = document.querySelectorAll("[data-ad]");
     for (var i=0;i<boxes.length;i++){
       var box = boxes[i], slot = ADS.slots[box.getAttribute("data-ad")];
