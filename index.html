@@ -253,6 +253,18 @@
   .guide b{display:block;font-size:13px;margin-bottom:2px}
   .guide span span,.guide li>span:last-child{font-size:12px;color:var(--muted);line-height:1.4}
 
+  /* ---- Sandbox setup ---- */
+  .sbox{display:flex;flex-direction:column;gap:6px;margin:0 0 12px}
+  .sbox label{display:block;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:9px 12px 0;font-size:13px;font-weight:700}
+  .sbox label b{float:right;font-variant-numeric:tabular-nums;color:var(--infl)}
+  .sbox input[type=range]{display:block;width:100%;height:44px}
+  .sbox .chk{padding:12px;font-weight:600;color:var(--muted);display:flex;gap:10px;align-items:center}
+  .sbox .chk input{width:20px;height:20px;accent-color:var(--infl);flex:0 0 auto}
+  .sbox .note{margin:2px 2px 0;font-size:11.5px;line-height:1.45;color:var(--muted)}
+  .sblink{display:block;text-align:center;margin-top:10px;font-size:12.5px;
+    color:var(--muted);text-decoration:none}
+
   /* ---- Tip jar ---- */
   .tipbtn{display:block;margin-top:9px;padding:13px 12px;border-radius:14px;
     border:1px solid var(--line);background:var(--raised);color:var(--muted);
@@ -327,10 +339,24 @@
         Eight members tell you what they'd have done. The decision is always yours.</span></li>
     </ol>
 
+    <!-- Sandbox setup, shown in place of the guide when ?sandbox is set -->
+    <div class="sbox hide" id="sbox">
+      <label>Starting inflation <b id="sbIv">12.0%</b>
+        <input type="range" id="sbI" min="-2" max="25" step="0.5" value="12"></label>
+      <label>Starting unemployment <b id="sbUv">4.9%</b>
+        <input type="range" id="sbU" min="2" max="18" step="0.1" value="4.9"></label>
+      <label>Starting Bank Rate <b id="sbRv">5.00%</b>
+        <input type="range" id="sbR" min="0" max="20" step="0.25" value="5"></label>
+      <label class="chk"><input type="checkbox" id="sbNo"> No energy shocks — just your policy</label>
+      <p class="note">Sandbox terms are unranked: no medals, no career record, no
+        personal best. The neutral rate stays hidden, as it always is.</p>
+    </div>
+
     <!-- ===== AD SLOT (pre-game) ===== -->
     <div class="ad-slot" id="adIntro" data-ad="intro">Advertisement</div>
 
     <div class="dock"><button class="go" id="start">TAKE OFFICE</button></div>
+    <a class="sblink" id="sblink" href="?sandbox">Or try sandbox mode →</a>
   </div>
 
   <div class="hud hide" id="hud">
@@ -401,6 +427,7 @@
       <div class="storykey"><span><i class="sw" style="background:var(--infl)"></i>Inflation</span>
         <span><i class="sw" style="background:var(--unemp)"></i>Unemployment</span>
         <span class="bandkey">Target band</span></div>
+      <div class="diag hide" id="versus" style="border-left-color:var(--unemp)"></div>
       <div class="diag" id="diag"></div>
       <div class="nm hide" id="best"></div>
       <div class="newmedals hide" id="newMedals"></div>
@@ -429,7 +456,7 @@
   </div>
 
   <footer>A simplified model, for entertainment. Not economic advice, and not the MPC.<br>
-    <a href="how-it-works.html">How the model works</a> · <a href="faq.html">Questions</a> ·
+    <a href="how-it-works.html">How the model works</a> · <a href="faq.html">Questions</a> · <a href="scenario-1974.html">1974</a> ·
     <a href="about.html">About</a> · <a href="privacy.html">Privacy</a> ·
     <a href="https://buymeacoffee.com/holdorhike" target="_blank" rel="noopener">Buy me a coffee</a></footer>
 </div>
@@ -505,14 +532,99 @@
   var START_EXP = 2.3;
   var GLOBAL_RATE = 3.25;                 // hidden: world policy rate at the start
   var NEUTRAL_LEAD = -0.25;               // hidden: UK neutral sits below the world rate
+  // Bounds on the hidden rates. These are era-specific — 4.5% is a sensible
+  // ceiling for neutral today and nonsense for 1974 — so a scenario overrides them.
+  var GLOBAL_BAND = [1.5, 4.75];
+  var NEUTRAL_BAND = [0.75, 4.5];
   var MPC_BIAS = [-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75];
   var RATE_MAX = 15;                      // the Governor may go full Volcker
   var INFL_FLOOR = -5, INFL_CEIL = 25;    // UK CPI peaked at 24.2% in 1975
   var UNEMP_FLOOR = 2, UNEMP_CEIL = 18;   // UK unemployment peaked near 11.9% in 1984
   var MAX_QUARTER_PENALTY = 6;            // a crisis quarter hurts, but never ends the game outright
+  // Above the cap the penalty can carry a compressed tail, so a term spent
+  // entirely out of band still distinguishes 2pp adrift from 9pp adrift. Zero by
+  // default: in the modern game a quarter that bad is rare and the flat cap is
+  // the kinder, more legible rule. Scenarios that start in a crisis set it.
+  var PENALTY_TAIL = 0;
+
+  // ---------- Scenarios ----------
+  // A scenario replaces the starting conditions and swaps the random shock rolls
+  // for a scripted schedule, so everyone plays the same history and results are
+  // comparable. Reached with ?scenario=1974; without one the modern game runs
+  // exactly as before.
+  var SCENARIOS = {
+    "1974": {
+      key: "1974",
+      name: "1974 · The oil embargo",
+      heading: "1974<br><span>The oil embargo</span>",
+      standfirst: "You are Governor of the Bank of England in January 1974. Inflation is 12% and "
+        + "climbing, unemployment is 2.6%, Bank Rate is 12.5% and the oil price has just "
+        + "quadrupled. This is what actually happened. See if you can do better.",
+      startYear: 1974, startQ: 1,
+      start: { rate:12.5, inflation:12.0, unemployment:2.6 },
+      // Nominal neutral sat around 13% with inflation where it was, so 12.5%
+      // was roughly neutral — not the fierce squeeze the modern numbers imply.
+      exp: 11.0, global: 13.0,
+      // Nominal rates lived an era higher, so the modern bounds have to move with
+      // them or a 12.5% Bank Rate reads as an eight-point squeeze from quarter one.
+      globalBand: [9, 16], neutralBand: [8, 15],
+      penaltyTail: 4,
+      rateMax: 20,   // Minimum Lending Rate actually reached 15% in October 1976
+      // quarter index (1-based, the quarter the shock lands) -> tier
+      script: { 1:3, 2:2, 4:2, 6:1, 9:2, 13:1 },
+      // what actually happened, for the comparison on the results screen
+      // Measured over eight runs per policy: doing nothing spirals past 20% and
+      // scores −358 to −302; steady early tightening lands −263 to −252 and firm
+      // −254 to −247. Par sits in the 39-point gap between riding it out and
+      // actually breaking the spiral.
+      par: -270,
+      real: { peak: 24.2, endInfl: 8.4, endUnemp: 5.7,
+              line: "Inflation peaked at 24.2% in August 1975. It took until 1978 to get back to 8.4%, "
+                  + "unemployment had more than doubled to 5.7%, and by 1980 inflation was above 20% again." }
+    }
+  };
+  var SCEN = null, SANDBOX = false, NO_SHOCKS = false;
+  (function(){
+    try {
+      var qs = new URLSearchParams(location.search);
+      var k = qs.get("scenario");
+      if (k && SCENARIOS[k]) SCEN = SCENARIOS[k];
+      else if (qs.has("sandbox")) SANDBOX = true;
+    } catch(e){}
+  })();
+  if (SCEN){
+    START = SCEN.start;
+    START_EXP = SCEN.exp;
+    GLOBAL_RATE = SCEN.global;
+    if (SCEN.globalBand)  GLOBAL_BAND = SCEN.globalBand;
+    if (SCEN.neutralBand) NEUTRAL_BAND = SCEN.neutralBand;
+    if (SCEN.penaltyTail) PENALTY_TAIL = SCEN.penaltyTail;
+    if (SCEN.rateMax) RATE_MAX = SCEN.rateMax;
+  }
+
+  // A sandbox is a scenario assembled from three sliders rather than read from
+  // the map above, so it reuses every bit of the same plumbing. Applied when the
+  // player presses TAKE OFFICE, because reset() reads these live.
+  function applySandbox(infl, unemp, rate, noShocks){
+    START = { rate:rate, inflation:infl, unemployment:unemp };
+    // Expectations start part-way between the target and what people can see:
+    // fully anchored at 2% would make any starting inflation melt away.
+    START_EXP = 2 + 0.7 * (infl - 2);
+    // Put neutral at the chosen Bank Rate, so the run starts from a genuine
+    // standing start and whatever happens next is the player's doing. Neutral
+    // stays hidden, as always — that is the game.
+    GLOBAL_RATE  = rate - NEUTRAL_LEAD;
+    GLOBAL_BAND  = [Math.max(0, GLOBAL_RATE - 4), GLOBAL_RATE + 4];
+    NEUTRAL_BAND = [Math.max(0, GLOBAL_RATE + NEUTRAL_LEAD - 4), GLOBAL_RATE + NEUTRAL_LEAD + 4];
+    RATE_MAX = 20;
+    // Start far enough out of band and the flat penalty cap saturates, so the
+    // scoring needs the same compressed tail the 1974 scenario uses.
+    PENALTY_TAIL = (infl > 6 || infl < 0 || unemp > 7) ? 4 : 0;
+    NO_SHOCKS = !!noShocks;
+  }
 
   var QNAMES = (function(){
-    var out=[], y=2026, q=3;
+    var out=[], y = SCEN ? SCEN.startYear : 2026, q = SCEN ? SCEN.startQ : 3;
     for (var i=0;i<QUARTERS;i++){ out.push("Q"+q+" "+y); if(++q>4){q=1;y++;} }
     return out;
   })();
@@ -684,7 +796,9 @@
       prevInfl:START.inflation, prevUnemp:START.unemployment,
       exp:START_EXP,
       global:GLOBAL_RATE, globalDrift:0,
-      globalBias:[-0.075,-0.04,0,0.04,0.075][(Math.random()*5)|0],
+      // A scenario is meant to be the same history for everyone, so it does not
+      // also roll a hidden drift direction the way the modern game does.
+      globalBias: SCEN ? 0 : [-0.075,-0.04,0,0.04,0.075][(Math.random()*5)|0],
       score:0, bandPoints:0, missPoints:0, fightPoints:0, streak:0, bestStreak:0,
       crisisFired:false, crisisPenalty:0,
       shocksHit:0, majorHits:0, crisisHits:0,
@@ -702,7 +816,7 @@
   function outBy(v,b){ return v<b.lo ? b.lo-v : (v>b.hi ? v-b.hi : 0); }
   function pct(v){ return v.toFixed(2).replace(/\.?0+$/,'') + "%"; }
   function f1(v){ return v.toFixed(1)+"%"; }
-  function neutralRate(){ return clamp(S.global + NEUTRAL_LEAD, 0.75, 4.5); }
+  function neutralRate(){ return clamp(S.global + NEUTRAL_LEAD, NEUTRAL_BAND[0], NEUTRAL_BAND[1]); }
 
   // ---------- The Committee ----------
   // Hidden from the player, the committee prices off the true neutral rate, so
@@ -732,13 +846,23 @@
 
     // World rates wander, dragging the UK neutral rate with them (hidden).
     S.globalDrift = clamp(S.globalDrift*0.72 + S.globalBias + (Math.random()-0.5)*0.26, -0.35, 0.35);
-    S.global = clamp(S.global + S.globalDrift, 1.5, 4.75);
+    S.global = clamp(S.global + S.globalDrift, GLOBAL_BAND[0], GLOBAL_BAND[1]);
 
-    var roll = Math.random(), shock = 0, ev, tier = 0;
-    if (roll < 0.018)      { tier = 3; ev = CRISIS[(Math.random()*CRISIS.length)|0]; shock = 3.60; S.crisisHits++; S.crisisName = ev[1]; }
-    else if (roll < 0.065) { tier = 2; ev = MAJOR[(Math.random()*MAJOR.length)|0];  shock = 0.75; S.majorHits++; }
-    else if (roll < 0.175) { tier = 1; ev = MINOR[(Math.random()*MINOR.length)|0];  shock = 0.32; }
-    else                   { ev = CALM[(Math.random()*CALM.length)|0]; }
+    var shock = 0, ev, tier = 0;
+    if (SCEN){
+      tier = SCEN.script[S.q + 1] || 0;          // history, not dice
+    } else if (NO_SHOCKS){
+      tier = 0;                                  // sandbox: your policy, nothing else
+    } else {
+      var roll = Math.random();
+      if (roll < 0.018)      tier = 3;
+      else if (roll < 0.065) tier = 2;
+      else if (roll < 0.175) tier = 1;
+    }
+    if (tier === 3){ ev = CRISIS[(Math.random()*CRISIS.length)|0]; shock = 3.60; S.crisisHits++; S.crisisName = ev[1]; }
+    else if (tier === 2){ ev = MAJOR[(Math.random()*MAJOR.length)|0]; shock = 0.75; S.majorHits++; }
+    else if (tier === 1){ ev = MINOR[(Math.random()*MINOR.length)|0]; shock = 0.32; }
+    else ev = CALM[(Math.random()*CALM.length)|0];
     if (tier) S.shocksHit++;
 
     var carry = S.shockCarry;
@@ -792,7 +916,12 @@
       if (S.streak > S.bestStreak) S.bestStreak = S.streak;
       S.bandHits++;
     } else S.streak = 0;
-    var miss = Math.min((outBy(S.infl, INFL_BAND) + outBy(S.unemp, UNEMP_BAND)) * 10, MAX_QUARTER_PENALTY);
+    var raw = (outBy(S.infl, INFL_BAND) + outBy(S.unemp, UNEMP_BAND)) * 10;
+    // Linear to the cap, then a logarithmic tail. Log rather than a second cap:
+    // it never saturates, so 20% inflation always costs more than 6%, but it
+    // grows slowly enough that one disastrous quarter cannot end the term.
+    var miss = raw <= MAX_QUARTER_PENALTY ? raw
+             : MAX_QUARTER_PENALTY + PENALTY_TAIL * Math.log(raw / MAX_QUARTER_PENALTY);
     if (miss > 0) { S.missPoints += miss; S.score -= miss; }
     // Credit for visibly winning the fight: inflation above the band but falling.
     if (S.infl > INFL_BAND.hi && S.infl < S.prevInfl - 0.15) { S.fightPoints += 3; S.score += 3; }
@@ -1006,7 +1135,8 @@
   function render(){
     rollScore(S.score);
     $("qName").textContent = S.over ? "Term complete" : QNAMES[S.q];
-    $("qNum").textContent = S.over ? QUARTERS + " quarters served" : "Quarter " + (S.q+1) + " of " + QUARTERS;
+    $("qNum").textContent = (S.over ? QUARTERS + " quarters served" : "Quarter " + (S.q+1) + " of " + QUARTERS)
+      + (SCEN ? " · 1974" : "");
 
     $("iVal").textContent = S.infl.toFixed(1);
     $("uVal").textContent = S.unemp.toFixed(1);
@@ -1113,7 +1243,7 @@
 
     // Graded against a par that moves with the hand you were dealt: a term with
     // a 1974-scale energy crisis in it cannot be judged against a calm one.
-    var par = Math.max(12 - 45*S.crisisHits - 4*S.majorHits, -95);
+    var par = SCEN ? SCEN.par : Math.max(12 - 45*S.crisisHits - 4*S.majorHits, -95);
 
     var lines = [
       ["Quarters on target", "+" + S.bandPoints, true],
@@ -1135,7 +1265,11 @@
 
     var s = S.score;
     var medal, rating, say;
-    if (s >= 34){ medal="🎖️"; rating="A great Governor"; say="They will name a wing after you. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
+    // The top grade is absolute in the modern game — 34 points means genuine
+    // control. A term that opens at 12% inflation can never reach it, so a
+    // scenario grades its best tier against its own par instead.
+    var greatAt = SCEN ? par + 25 : 34;
+    if (s >= greatAt){ medal="🎖️"; rating="A great Governor"; say="They will name a wing after you. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
     else if (s >= par){ medal="🏅"; rating="Second term secured";
       say="You beat par for a term like this ("+Math.round(par)+"). CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
     else if (s >= par - 22){ medal="🤝"; rating="Term served"; say="Credibility intact, if not burnished. CPI "+f1(S.infl)+", unemployment "+f1(S.unemp)+"."; }
@@ -1146,6 +1280,9 @@
     var dg = diagnose();
     $("diag").innerHTML = '<b>' + dg[0] + '</b><span>' + dg[1] + '</span>';
 
+    // Only the modern game has a comparable personal best; a scenario or sandbox
+    // score sits on its own scale, so "142 short of your best" would be nonsense.
+    if (SCEN) prevBest = null;
     var beat = prevBest !== null && S.score > prevBest;
     if (beat) $("best").innerHTML = '<span class="e">🏆</span><span><b>New personal best</b>'
       + '<span>' + Math.round(S.score) + ' points, beating ' + prevBest + '.</span></span>';
@@ -1158,18 +1295,28 @@
     $("qName").textContent = "Term complete";
     $("qNum").textContent = QUARTERS + " quarters served";
     // Career: a term is only banked once, at the end.
-    career.games++;
-    if (career.bestScore === null || S.score > career.bestScore) career.bestScore = Math.round(S.score);
-    if (S.bestStreak > career.bestStreak) career.bestStreak = S.bestStreak;
-    career.crisesSurvived += S.crisisHits;
+    //
+    // A sandbox is unranked outright — you chose the starting position, so
+    // nothing it produces is comparable with a real term. A scenario is a fixed
+    // challenge everyone plays identically, so it counts as a term served and
+    // can win medals, but its score sits on a different scale entirely (1974
+    // pars around −185) and would be meaningless as a personal best.
+    var ranked = !SANDBOX;
+    if (ranked){
+      career.games++;
+      if (!SCEN && (career.bestScore === null || S.score > career.bestScore))
+        career.bestScore = Math.round(S.score);
+      if (S.bestStreak > career.bestStreak) career.bestStreak = S.bestStreak;
+      career.crisesSurvived += S.crisisHits;
+    }
 
     var earned = [];
-    MEDALS.forEach(function(m){
+    if (ranked) MEDALS.forEach(function(m){
       if (career.medals.indexOf(m.id) === -1 && m.test(S, par)){
         career.medals.push(m.id); earned.push(m);
       }
     });
-    saveCareer();
+    if (ranked) saveCareer();
     renderCareer();
 
     $("newMedals").innerHTML = earned.map(function(m){
@@ -1179,13 +1326,24 @@
     $("newMedals").classList.toggle("hide", earned.length === 0);
     if (earned.length) setTimeout(SFX.medal, 900);
 
-    lines.push(["Terms served", String(career.games), null]);
-    if (career.bestScore !== null)
+    if (ranked) lines.push(["Terms served", String(career.games), null]);
+    if (!SCEN && ranked && career.bestScore !== null)
       lines.push(["Your best score", String(career.bestScore), S.score >= career.bestScore]);
 
     track("term_complete", { score: Math.round(S.score), rating: rating,
                              crises: S.crisisHits, quarters_on_target: S.bandHits });
     earned.forEach(function(m){ track("medal_earned", { medal: m.id }); });
+    if (SCEN){
+      var beatPeak = S.peakInfl < SCEN.real.peak, beatEnd = S.infl < SCEN.real.endInfl;
+      $("versus").innerHTML =
+        '<b>Versus what actually happened</b>'
+        + '<span>Peak inflation — you ' + f1(S.peakInfl) + ', history ' + f1(SCEN.real.peak)
+        + ' &nbsp;' + (beatPeak ? "✅" : "❌") + '<br>'
+        + 'Inflation after five years — you ' + f1(S.infl) + ', history ' + f1(SCEN.real.endInfl)
+        + ' &nbsp;' + (beatEnd ? "✅" : "❌") + '<br><br>' + SCEN.real.line + '</span>';
+      $("versus").classList.remove("hide");
+    }
+
     buildShare(medal, rating, earned);
     $("game").classList.add("hide");
     $("end").classList.remove("hide");
@@ -1205,7 +1363,8 @@
     for (var r=0;r<sq.length;r+=4) rows.push(sq.slice(r, r+4).join(""));
     var grid = rows.join("\n");
     var lines = [
-      "🏦 Hold or Hike — " + QNAMES[0] + " to " + QNAMES[QUARTERS-1],
+      "🏦 Hold or Hike — " + (SCEN ? SCEN.name : SANDBOX ? "Sandbox"
+        : QNAMES[0] + " to " + QNAMES[QUARTERS-1]),
       medal + " " + rating + " · " + Math.round(S.score) + " pts",
       grid,
       "Peak CPI " + f1(S.peakInfl) + (S.crisisName ? " · survived: " + S.crisisName.replace(/!$/,"") : "")
@@ -1213,7 +1372,8 @@
     if (earned && earned.length)
       lines.push("🏅 " + earned.map(function(m){ return m.emoji + " " + m.name; }).join(", "));
     var url = (location.protocol === "http:" || location.protocol === "https:")
-      ? location.origin + location.pathname : "";
+      // Carry the mode, so whoever taps the link plays the same term you did.
+      ? location.origin + location.pathname + (SCEN ? "?scenario=" + SCEN.key : SANDBOX ? "?sandbox" : "") : "";
     if (url) lines.push(url);
     shareText = lines.join("\n");
 
@@ -1286,6 +1446,8 @@
 
   // ---------- Wiring ----------
   var slider = $("rate");
+  slider.max = String(RATE_MAX);
+  slider.value = String(START.rate);
   slider.addEventListener("input", function(){ S.rate = parseFloat(slider.value); updateRate(); });
   function nudge(d){
     S.rate = clamp(Math.round((S.rate + d)*4)/4, 0, RATE_MAX);
@@ -1421,6 +1583,33 @@
   });
   $("again").addEventListener("click", restart);
 
+  if (SCEN){
+    document.title = SCEN.name + " — Hold or Hike";
+    $("intro").querySelector("h1").innerHTML = SCEN.heading;
+    $("intro").querySelector(".standfirst").innerHTML = SCEN.standfirst;
+    $("sblink").classList.add("hide");
+  }
+
+  if (SANDBOX){
+    document.title = "Sandbox — Hold or Hike";
+    $("intro").querySelector("h1").innerHTML = "Sandbox<br><span>Mode</span>";
+    $("intro").querySelector(".standfirst").innerHTML =
+      "Set the economy you want to inherit, then run it for twenty quarters. "
+      + "Start at 20% inflation and try to break it, or at 2% and try not to ruin it.";
+    $("intro").querySelector(".guide").classList.add("hide");
+    $("sbox").classList.remove("hide");
+    $("sblink").classList.add("hide");
+
+    var sbI = $("sbI"), sbU = $("sbU"), sbR = $("sbR");
+    function paintSandbox(){
+      $("sbIv").textContent = (+sbI.value).toFixed(1) + "%";
+      $("sbUv").textContent = (+sbU.value).toFixed(1) + "%";
+      $("sbRv").textContent = (+sbR.value).toFixed(2) + "%";
+    }
+    [sbI, sbU, sbR].forEach(function(el){ el.addEventListener("input", paintSandbox); });
+    paintSandbox();
+  }
+
   function paintMute(){ $("mute").textContent = soundOn ? "🔊" : "🔇"; }
   soundOn = career.sound !== false;
   paintMute();
@@ -1433,7 +1622,11 @@
 
   $("start").addEventListener("click", function(){
     unlockAudio();
-    track("term_start", { term: career.games + 1 });
+    if (SANDBOX){
+      applySandbox(+$("sbI").value, +$("sbU").value, +$("sbR").value, $("sbNo").checked);
+      slider.max = String(RATE_MAX);
+    }
+    track("term_start", { term: career.games + 1, mode: SANDBOX ? "sandbox" : (SCEN ? SCEN.key : "modern") });
     $("intro").classList.add("hide");
     $("hud").classList.remove("hide");
     $("dots").classList.remove("hide");

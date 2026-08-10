@@ -169,7 +169,10 @@ Rejection is common and not the end. In order of what to try:
 1. **Fix and reapply.** There is no limit on attempts, and AdSense pays better
    than every alternative below, so it is worth two or three goes. The usual
    reason given is "low value content": add real writing, wait a couple of
-   weeks, resubmit. The FAQ and how-it-works pages exist for exactly this.
+   weeks, resubmit. The FAQ, how-it-works and 1974 pages exist for exactly this.
+   The next two pieces of writing, if more is needed, are a strategy guide and a
+   second historical scenario — 1992 (the ERM) or 2022 (Ukraine). The scenario
+   machinery takes one entry in the `SCENARIOS` map plus an article.
 2. **Ezoic.** Accepts much smaller sites, respectable rates, but it inserts its
    own layer via Cloudflare or a script and can be heavy-handed with a carefully
    built mobile layout.
