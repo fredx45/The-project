@@ -55,9 +55,8 @@ records from step 1.
 
 ### Then
 
-- Check **https://holdorhike.com** loads the game
-- Send me the date you want on the privacy policy — it is the last unfilled
-  field, and you should not apply to AdSense until it is done
+The site is live and the AdSense tag is on it. What is left is waiting for
+Google's review, then sending me the three ad unit IDs — see section 3.
 
 ---
 
@@ -104,15 +103,10 @@ hard way later:
 
 ---
 
-## 1. The last written field
+## 1. Written fields — done
 
-Operator and contact address are both filled in. One placeholder remains, in the
-block at the top of `privacy.html`. It renders in loud amber on the live page
-until replaced, so it cannot be missed.
-
-| Placeholder | Files | Replace with |
-|---|---|---|
-| `[date you publish]` | `privacy.html` | The date you actually publish, e.g. `12 August 2026`. |
+Operator, contact address and the last-updated date (10 August 2026) are all
+filled in. No placeholders remain on any page.
 
 ## 2. Hosting — reference
 
@@ -137,28 +131,27 @@ Plus a `CNAME` record for `www` pointing at `fredx45.github.io`.
 
 All records must be **DNS only** in Cloudflare, not proxied.
 
-## 3. Apply to AdSense
+## 3. AdSense — awaiting review
 
-Do this only once the domain resolves and the pages above are filled in — a site
-with bracketed placeholders will be rejected.
+Done: publisher ID `ca-pub-8246785320309196` is in `ads.txt` and in the `ADS`
+config, and the loader tag is on the game plus all three written pages, so the
+whole site carries it for review. The three slot values are deliberately empty,
+which means **no ad unit renders yet** — the tag is present for verification
+only.
 
-1. Create the account and add the site.
-2. Put your publisher ID into `ads.txt`, replacing `pub-REPLACE_ME`. The file
-   must be reachable at `https://holdorhike.com/ads.txt`.
-3. Create three display units and paste the IDs into the `ADS` object near the
-   top of the script in `index.html`:
+Left to do, once Google approves:
+
+1. **Ads → By ad unit → Display ads**, create three units (intro, banner,
+   results), and send the three slot IDs. They go into:
 
 ```js
-var ADS = { client: "ca-pub-XXXXXXXXXXXXXXXX",
-            slots: { intro: "1234567890", banner: "2345678901", results: "3456789012" } };
+var ADS = { client: "ca-pub-8246785320309196",
+            slots: { intro: "…", banner: "…", results: "…" } };
 ```
 
-While `client` is empty, the slots stay inert placeholders and nothing external
-loads — so it is safe to deploy before approval.
-
-4. In the AdSense console, turn on **Privacy & messaging → GDPR message**
-   (Funding Choices). This is the UK/EEA consent banner and is required. It
-   ships through the ad tag; no code change needed.
+2. **Privacy & messaging → GDPR message** — create and publish it. This is the
+   UK/EEA consent banner, it is required before ads may serve here, and it needs
+   no code change: it ships through the ad tag already on the site.
 
 **Never click your own ads**, not even to check they work. It is the quickest
 route to a permanent ban.
