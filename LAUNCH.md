@@ -72,6 +72,7 @@ worth doing it. Run `node preflight.js` at any point to see what is left.
 | **Contact** | `hello@holdorhike.com` — in the pages; still needs the forwarding rule creating |
 | **Ad network** | Google AdSense |
 | **Analytics** | Google Analytics 4 |
+| **Tips** | [buymeacoffee.com/holdorhike](https://buymeacoffee.com/holdorhike) — results screen and every footer |
 
 Two things about the operator choice, recorded so they are not rediscovered the
 hard way later:

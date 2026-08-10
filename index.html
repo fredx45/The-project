@@ -253,6 +253,12 @@
   .guide b{display:block;font-size:13px;margin-bottom:2px}
   .guide span span,.guide li>span:last-child{font-size:12px;color:var(--muted);line-height:1.4}
 
+  /* ---- Tip jar ---- */
+  .tipbtn{display:block;margin-top:9px;padding:13px 12px;border-radius:14px;
+    border:1px solid var(--line);background:var(--raised);color:var(--muted);
+    font-size:14px;font-weight:700;text-align:center;text-decoration:none}
+  .tipbtn:active{background:var(--line)}
+
   /* ---- Ads ---- */
   .adwrap{margin-bottom:28px}
   .adlabel{font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:#4C5875;
@@ -407,6 +413,7 @@
       <div class="sharecard" id="shareCard" aria-hidden="true"></div>
       <button class="go share" id="share">SHARE RESULT</button>
       <button class="go" id="again" style="margin-top:9px">PLAY AGAIN</button>
+      <a class="tipbtn hide" id="tip" target="_blank" rel="noopener">☕ Buy me a coffee</a>
       <textarea id="shareFallback" class="hide" readonly aria-label="Your result, ready to copy"></textarea>
     </div>
   </div>
@@ -423,7 +430,8 @@
 
   <footer>A simplified model, for entertainment. Not economic advice, and not the MPC.<br>
     <a href="how-it-works.html">How the model works</a> · <a href="faq.html">Questions</a> ·
-    <a href="about.html">About</a> · <a href="privacy.html">Privacy</a></footer>
+    <a href="about.html">About</a> · <a href="privacy.html">Privacy</a> ·
+    <a href="https://buymeacoffee.com/holdorhike" target="_blank" rel="noopener">Buy me a coffee</a></footer>
 </div>
 
 <script>
@@ -440,6 +448,9 @@
   // Google Analytics 4. Empty id = nothing loads and no cookies are set.
   // Filling it in also obliges the consent banner and the privacy policy text.
   var GA = { id: "" };
+
+  // Tip jar. Empty url = the button and footer link stay hidden.
+  var TIP = { url: "https://buymeacoffee.com/holdorhike" };
   function initGA(){
     if (!GA.id) return;
     var sc = document.createElement("script");
@@ -1430,6 +1441,13 @@
   });
 
   window.addEventListener("resize", render);
+  if (TIP.url){
+    var tip = $("tip");
+    tip.href = TIP.url;
+    tip.classList.remove("hide");
+    tip.addEventListener("click", function(){ track("tip_click"); });
+  }
+
   restart();
   initAds();
   initGA();
