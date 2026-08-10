@@ -253,6 +253,26 @@
   .guide b{display:block;font-size:13px;margin-bottom:2px}
   .guide span span,.guide li>span:last-child{font-size:12px;color:var(--muted);line-height:1.4}
 
+  /* ---- Mode picker ---- */
+  .modes{display:flex;gap:4px;margin:0 0 10px;padding:4px;background:var(--panel);
+    border:1px solid var(--line);border-radius:14px}
+  .modes button{flex:1 1 0;min-width:0;padding:11px 4px;border:0;border-radius:10px;
+    background:transparent;color:var(--muted);font-family:inherit;font-size:12.5px;
+    font-weight:800;letter-spacing:.01em;cursor:pointer}
+  .modes button[aria-selected=true]{background:var(--infl);color:#08111F}
+  .scens{display:flex;flex-direction:column;gap:8px;margin:0 0 12px}
+  .scens .sc{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:11px 12px;cursor:pointer}
+  .scens .sc[aria-pressed=true]{border-color:var(--infl);background:var(--raised)}
+  .scens .sc .yr{font-size:14px;font-weight:900;color:var(--ink)}
+  .scens .sc .nm2{font-size:12.5px;font-weight:700;color:var(--ink);opacity:.85}
+  .scens .sc .bl{display:block;font-size:11.5px;color:var(--muted);margin-top:3px;
+    font-variant-numeric:tabular-nums}
+  .scens .sc .more{display:none;font-size:12px;color:var(--muted);line-height:1.45;margin-top:8px}
+  .scens .sc[aria-pressed=true] .more{display:block}
+  .scens .sc .more a{color:var(--infl);font-weight:700;text-decoration:none;
+    display:inline-block;margin-top:6px}
+
   /* ---- Sandbox setup ---- */
   .sbox{display:flex;flex-direction:column;gap:6px;margin:0 0 12px}
   .sbox label{display:block;background:var(--panel);border:1px solid var(--line);
@@ -262,8 +282,6 @@
   .sbox .chk{padding:12px;font-weight:600;color:var(--muted);display:flex;gap:10px;align-items:center}
   .sbox .chk input{width:20px;height:20px;accent-color:var(--infl);flex:0 0 auto}
   .sbox .note{margin:2px 2px 0;font-size:11.5px;line-height:1.45;color:var(--muted)}
-  .sblink{display:block;text-align:center;margin-top:10px;font-size:12.5px;
-    color:var(--muted);text-decoration:none}
 
   /* ---- Tip jar ---- */
   .tipbtn{display:block;margin-top:9px;padding:13px 12px;border-radius:14px;
@@ -323,6 +341,15 @@
       <div class="mrow" id="mrow"></div>
     </div>
 
+    <div class="modes" id="modes" role="tablist">
+      <button role="tab" data-mode="modern" id="mModern">Modern day</button>
+      <button role="tab" data-mode="hist"   id="mHist">Historical</button>
+      <button role="tab" data-mode="sandbox" id="mSand">Sandbox</button>
+    </div>
+
+    <!-- Scenario list, shown when the Historical tab is active -->
+    <div class="scens hide" id="scens"></div>
+
     <ol class="guide">
       <li><span class="n">1</span><span><b>Set Bank Rate each quarter</b>
         Anywhere from 0% to 15%. Twenty quarters, then they judge your record.</span></li>
@@ -356,7 +383,6 @@
     <div class="ad-slot" id="adIntro" data-ad="intro">Advertisement</div>
 
     <div class="dock"><button class="go" id="start">TAKE OFFICE</button></div>
-    <a class="sblink" id="sblink" href="?sandbox">Or try sandbox mode →</a>
   </div>
 
   <div class="hud hide" id="hud">
@@ -456,7 +482,7 @@
   </div>
 
   <footer>A simplified model, for entertainment. Not economic advice, and not the MPC.<br>
-    <a href="how-it-works.html">How the model works</a> · <a href="faq.html">Questions</a> · <a href="scenario-1974.html">1974</a> ·
+    <a href="how-it-works.html">How the model works</a> · <a href="faq.html">Questions</a> · <a href="scenario-1974.html">1974</a> · <a href="scenario-1992.html">1992</a> · <a href="scenario-2008.html">2008</a> ·
     <a href="about.html">About</a> · <a href="privacy.html">Privacy</a> ·
     <a href="https://buymeacoffee.com/holdorhike" target="_blank" rel="noopener">Buy me a coffee</a></footer>
 </div>
@@ -536,6 +562,14 @@
   // ceiling for neutral today and nonsense for 1974 — so a scenario overrides them.
   var GLOBAL_BAND = [1.5, 4.75];
   var NEUTRAL_BAND = [0.75, 4.5];
+  // How hard the hidden sterling channel can push: sit away from world rates and
+  // imported prices move. A currency under real pressure needs a wider bound.
+  var IMPORT_CLAMP = 0.5;
+  // Normally the rate sterling is judged against *is* the world rate. Under a
+  // currency peg the two come apart: what the domestic economy needs and what
+  // the peg demands are different numbers, which is the whole 1992 problem.
+  // null means "use the world rate", which is every case but that one.
+  var PEG_RATE = null;
   var MPC_BIAS = [-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75];
   var RATE_MAX = 15;                      // the Governor may go full Volcker
   var INFL_FLOOR = -5, INFL_CEIL = 25;    // UK CPI peaked at 24.2% in 1975
@@ -557,6 +591,7 @@
       key: "1974",
       name: "1974 · The oil embargo",
       heading: "1974<br><span>The oil embargo</span>",
+      blurb: "Inflation 12% · Unemployment 2.6% · Bank Rate 12.5%",
       standfirst: "You are Governor of the Bank of England in January 1974. Inflation is 12% and "
         + "climbing, unemployment is 2.6%, Bank Rate is 12.5% and the oil price has just "
         + "quadrupled. This is what actually happened. See if you can do better.",
@@ -581,31 +616,124 @@
       real: { peak: 24.2, endInfl: 8.4, endUnemp: 5.7,
               line: "Inflation peaked at 24.2% in August 1975. It took until 1978 to get back to 8.4%, "
                   + "unemployment had more than doubled to 5.7%, and by 1980 inflation was above 20% again." }
+    },
+
+    "1992": {
+      key: "1992",
+      name: "1992 · Black Wednesday",
+      heading: "1992<br><span>Black Wednesday</span>",
+      blurb: "Inflation 3.7% · Unemployment 9.7% · Bank Rate 10%",
+      standfirst: "You are Governor in the summer of 1992. Inflation is beaten but the recession "
+        + "is not: unemployment is near 10% and rising. Bank Rate is 10%, and it is high to hold "
+        + "sterling inside the European Exchange Rate Mechanism, not because the economy wants it.",
+      startYear: 1992, startQ: 3,
+      start: { rate:10.0, inflation:3.7, unemployment:9.7 },
+      // What the UK economy itself needed was far below 10% — that is why there
+      // was a recession. The 10% was the peg's price, not the economy's.
+      exp: 4.2, global: 5.60,
+      globalBand: [4.0, 7.5], neutralBand: [3.5, 7.0],
+      // World rates rose through the mid-90s — the 1994 Fed tightening cycle —
+      // so neutral climbs from around 5% to around 6.5% across the term. A
+      // constant neutral cannot fit both the 5.25% of 1993 and the 6.75% of
+      // 1995, and both of those years ran inflation near target.
+      globalBias: 0.02,
+      // The peg: sterling is judged against German rates, not UK ones, so every
+      // cut towards what the economy needs costs you imported inflation.
+      pegRate: 9.0, importClamp: 1.0,
+      penaltyTail: 4,
+      // Sterling leaves the ERM in the second quarter, as it did, and the
+      // constraint simply stops applying. That is the whole lesson of 1992: the
+      // devaluation everyone feared turned out to be the way out.
+      // The exit devalued sterling by about 15%, which pushed import prices up
+      // and fed through over the following year — the thing that stopped the
+      // recession's disinflation turning into outright deflation.
+      events: { 2: { pegRate: null, importClamp: 0.35, shock: 1.15, carry: 0.40,
+                     card: ["💷","STERLING LEAVES THE ERM",
+                            "Out of the mechanism after a day of 12% and an announced 15%. "
+                            + "Rates are yours again — the pound will take the strain instead."] } },
+      script: { 5:1, 9:1, 14:1 },     // a quiet term by design: the drama is the start
+      // Measured: holding 10% throughout scores −314 and ends in deflation with
+      // unemployment near 15%; a generic Taylor rule manages −199 to −227. The
+      // rate path the MPC actually ran scores −141, and reproduces the history
+      // closely — inflation dipping to 1.4% in 1993, then 2–3.5% to 1997.
+      par: -210,
+      real: { peak: 3.7, endInfl: 2.6, endUnemp: 7.2,
+              line: "Sterling left the ERM on 16 September 1992 after a day in which Bank Rate was "
+                  + "raised to 12% and a 15% rate was announced but never implemented. Freed of the "
+                  + "peg, rates fell to 6% within months, inflation stayed near target and "
+                  + "unemployment fell for the rest of the decade." }
+    },
+
+    "2008": {
+      key: "2008",
+      name: "2008 · The crash",
+      heading: "2008<br><span>The crash</span>",
+      blurb: "Inflation 5.2% · Unemployment 5.7% · Bank Rate 5%",
+      standfirst: "You are Governor in September 2008. Inflation is 5.2% and the Committee has been "
+        + "worrying about it all year. What is actually coming is the opposite problem, and it is "
+        + "about to arrive all at once.",
+      startYear: 2008, startQ: 3,
+      start: { rate:5.0, inflation:5.2, unemployment:5.7 },
+      exp: 3.4, global: 4.0,
+      globalBand: [0.25, 5.0], neutralBand: [0.1, 4.5],
+      globalBias: -0.16,             // the whole world cut, and stayed cut
+      penaltyTail: 4,
+      // The demand collapse, then the 2011 energy and VAT overshoot back above 5%.
+      script: { 2:5, 3:4, 4:4, 11:2, 12:2, 14:1 },
+      // Measured: never cutting scores −319 and pins the deflation floor with
+      // unemployment near 15%. The real path — 5% to 0.5% in six months, then
+      // hold — scores −144 and is the best of everything tried, which is the
+      // lesson. Tightening into the slump, as the starting 5.2% CPI tempts you
+      // to, scores worse than doing nothing at all.
+      par: -190,
+      real: { peak: 5.2, endInfl: 2.9, endUnemp: 7.8,
+              line: "Bank Rate went from 5% to 0.5% in six months and stayed there for seven years. "
+                  + "Inflation fell to 1.1% by September 2009, then climbed back to 5.2% in 2011 on "
+                  + "energy and VAT. Unemployment peaked at 8.4% and was still 7.8% in 2013." }
     }
   };
   var SCEN = null, SANDBOX = false, NO_SHOCKS = false;
-  (function(){
-    try {
-      var qs = new URLSearchParams(location.search);
-      var k = qs.get("scenario");
-      if (k && SCENARIOS[k]) SCEN = SCENARIOS[k];
-      else if (qs.has("sandbox")) SANDBOX = true;
-    } catch(e){}
-  })();
-  if (SCEN){
-    START = SCEN.start;
-    START_EXP = SCEN.exp;
-    GLOBAL_RATE = SCEN.global;
-    if (SCEN.globalBand)  GLOBAL_BAND = SCEN.globalBand;
-    if (SCEN.neutralBand) NEUTRAL_BAND = SCEN.neutralBand;
-    if (SCEN.penaltyTail) PENALTY_TAIL = SCEN.penaltyTail;
-    if (SCEN.rateMax) RATE_MAX = SCEN.rateMax;
+  var SCEN_ORDER = ["1974", "1992", "2008"];
+
+  // Every era-specific tunable in one place, so switching mode can restore the
+  // modern game exactly rather than leaving a previous scenario's numbers behind.
+  var MODERN = {
+    start: { rate:3.75, inflation:2.6, unemployment:4.9 },
+    exp: 2.3, global: 3.25,
+    globalBand: [1.5, 4.75], neutralBand: [0.75, 4.5],
+    penaltyTail: 0, rateMax: 15, importClamp: 0.5,
+    startYear: 2026, startQ: 3
+  };
+
+  var QNAMES = [];
+  function rebuildQNames(y, q){
+    QNAMES = [];
+    for (var i=0;i<QUARTERS;i++){ QNAMES.push("Q"+q+" "+y); if(++q>4){q=1;y++;} }
+  }
+
+  // Reset every tunable to the modern default, then overlay the chosen mode.
+  // Called at load and again whenever the picker changes mode, so no scenario
+  // can leave its rate ceiling or its penalty tail behind.
+  function applyMode(){
+    var m = SCEN || MODERN;
+    START        = m.start;
+    START_EXP    = m.exp;
+    GLOBAL_RATE  = m.global;
+    GLOBAL_BAND  = m.globalBand  || MODERN.globalBand;
+    NEUTRAL_BAND = m.neutralBand || MODERN.neutralBand;
+    PENALTY_TAIL = m.penaltyTail || 0;
+    RATE_MAX     = m.rateMax     || MODERN.rateMax;
+    IMPORT_CLAMP = m.importClamp || MODERN.importClamp;
+    PEG_RATE     = (m.pegRate === undefined) ? null : m.pegRate;
+    NO_SHOCKS    = false;
+    rebuildQNames(m.startYear || MODERN.startYear, m.startQ || MODERN.startQ);
   }
 
   // A sandbox is a scenario assembled from three sliders rather than read from
   // the map above, so it reuses every bit of the same plumbing. Applied when the
   // player presses TAKE OFFICE, because reset() reads these live.
   function applySandbox(infl, unemp, rate, noShocks){
+    applyMode();                       // modern baseline, then override
     START = { rate:rate, inflation:infl, unemployment:unemp };
     // Expectations start part-way between the target and what people can see:
     // fully anchored at 2% would make any starting inflation melt away.
@@ -623,11 +751,15 @@
     NO_SHOCKS = !!noShocks;
   }
 
-  var QNAMES = (function(){
-    var out=[], y = SCEN ? SCEN.startYear : 2026, q = SCEN ? SCEN.startQ : 3;
-    for (var i=0;i<QUARTERS;i++){ out.push("Q"+q+" "+y); if(++q>4){q=1;y++;} }
-    return out;
+  (function(){
+    try {
+      var qs = new URLSearchParams(location.search);
+      var k = qs.get("scenario");
+      if (k && SCENARIOS[k]) SCEN = SCENARIOS[k];
+      else if (qs.has("sandbox")) SANDBOX = true;
+    } catch(e){}
   })();
+  applyMode();
 
   // Three tiers. The top tier is a 2022-scale energy crisis: enough on its own
   // to put CPI into double digits and keep it there for over a year.
@@ -646,6 +778,18 @@
     ["💥","WAR IN THE GULF","Brent above $200. Wholesale gas has quadrupled — this is a 1974-scale energy shock and it will not clear for years."],
     ["☢️","Major exporter embargoed","A quarter of global supply is off the market overnight. Every forecast is being torn up."],
     ["🛑","Pipeline network severed","Europe scrambles for cargoes at any price. The cap will have to rise again, and again."]
+  ];
+  // Demand shocks, the mirror image of the three tiers above. A supply shock
+  // raises prices and costs jobs at once; a demand collapse takes prices *down*
+  // and costs jobs anyway, which is the 2008 problem and the one case where
+  // cutting hard is unambiguously right. Tier 4 = slump, tier 5 = deep slump.
+  var SLUMP = [
+    ["📉","Credit conditions tighten","Lending standards jump and firms shelve investment. Demand is coming out of the economy."],
+    ["🏚️","Housing market stalls","Transactions collapse and construction lays off. Prices are softening across the board."]
+  ];
+  var DEEP = [
+    ["🏦","A MAJOR BANK HAS FAILED","Interbank lending has stopped. This is a demand collapse: output, jobs and prices are all about to fall together."],
+    ["🌍","Global trade seizes","Export orders have fallen off a cliff and the whole world is cutting at once."]
   ];
   var CALM = [
     ["📊","Quiet quarter","Brent steady. Gilt markets calm and sterling little changed."],
@@ -798,7 +942,11 @@
       global:GLOBAL_RATE, globalDrift:0,
       // A scenario is meant to be the same history for everyone, so it does not
       // also roll a hidden drift direction the way the modern game does.
-      globalBias: SCEN ? 0 : [-0.075,-0.04,0,0.04,0.075][(Math.random()*5)|0],
+      // A scenario plays the same history for everyone, so it does not roll a
+      // hidden drift direction — but it may state one, where world rates
+      // demonstrably moved one way through the term.
+      globalBias: SCEN ? (SCEN.globalBias || 0)
+                       : [-0.075,-0.04,0,0.04,0.075][(Math.random()*5)|0],
       score:0, bandPoints:0, missPoints:0, fightPoints:0, streak:0, bestStreak:0,
       crisisFired:false, crisisPenalty:0,
       shocksHit:0, majorHits:0, crisisHits:0,
@@ -845,8 +993,25 @@
     S.prevInfl = S.infl; S.prevUnemp = S.unemp;
 
     // World rates wander, dragging the UK neutral rate with them (hidden).
-    S.globalDrift = clamp(S.globalDrift*0.72 + S.globalBias + (Math.random()-0.5)*0.26, -0.35, 0.35);
+    // In the modern game the hidden neutral rate wanders, and that uncertainty is
+    // the point. A scenario is supposed to be the same history for everyone, and
+    // a random walk compounded over twenty quarters is not — it moved a quiet
+    // term's final inflation by several points run to run. Scenarios keep only
+    // the drift they state.
+    var driftNoise = SCEN ? 0.05 : 0.26;
+    S.globalDrift = clamp(S.globalDrift*0.72 + S.globalBias + (Math.random()-0.5)*driftNoise, -0.35, 0.35);
     S.global = clamp(S.global + S.globalDrift, GLOBAL_BAND[0], GLOBAL_BAND[1]);
+
+    // A scripted regime change: something that alters the world the player is
+    // operating in, rather than just hitting it with a shock. Leaving a currency
+    // peg is the case it exists for — the constraint simply stops applying.
+    var regime = SCEN && SCEN.events && SCEN.events[S.q + 1];
+    if (regime){
+      if (regime.global !== undefined)      S.global = regime.global;
+      if (regime.importClamp !== undefined) IMPORT_CLAMP = regime.importClamp;
+      if (regime.globalBias !== undefined)  S.globalBias = regime.globalBias;
+      if (regime.pegRate !== undefined)     PEG_RATE = regime.pegRate;
+    }
 
     var shock = 0, ev, tier = 0;
     if (SCEN){
@@ -859,24 +1024,35 @@
       else if (roll < 0.065) tier = 2;
       else if (roll < 0.175) tier = 1;
     }
+    // dU is the shock's own hit to employment. Supply shocks leave it at zero and
+    // damage jobs through the carry term below; a demand collapse has to move
+    // unemployment directly, because its inflation effect points the other way.
+    var dU = 0;
     if (tier === 3){ ev = CRISIS[(Math.random()*CRISIS.length)|0]; shock = 3.60; S.crisisHits++; S.crisisName = ev[1]; }
     else if (tier === 2){ ev = MAJOR[(Math.random()*MAJOR.length)|0]; shock = 0.75; S.majorHits++; }
     else if (tier === 1){ ev = MINOR[(Math.random()*MINOR.length)|0]; shock = 0.32; }
+    else if (tier === 5){ ev = DEEP[(Math.random()*DEEP.length)|0]; shock = -2.05; dU = 1.05; S.crisisHits++; S.crisisName = ev[1]; }
+    else if (tier === 4){ ev = SLUMP[(Math.random()*SLUMP.length)|0]; shock = -0.70; dU = 0.40; S.majorHits++; }
     else ev = CALM[(Math.random()*CALM.length)|0];
     if (tier) S.shocksHit++;
+    if (regime && regime.card) ev = regime.card;   // the regime change is the news
+    if (regime && regime.shock) shock += regime.shock;
 
     var carry = S.shockCarry;
     var noise = (Math.random()-0.5)*0.10;
 
     // Hidden sterling channel: sit away from world rates and imported prices move.
-    var importPush = clamp(-0.22 * (S.lagged - S.global), -0.5, 0.5);
+    var anchor = (PEG_RATE === null) ? S.global : PEG_RATE;
+    var importPush = clamp(-0.22 * (S.lagged - anchor), -IMPORT_CLAMP, IMPORT_CLAMP);
 
     // Policy bites with diminishing returns: a punitive rate is powerful but
     // cannot collapse prices in a single quarter, so a spiral takes years to
     // break rather than one heroic meeting.
     var squeeze = Math.tanh(gap / 4);
     S.infl  = S.infl  + (-2.00*squeeze) - 0.30*(S.infl - S.exp) + shock + carry + importPush + noise;
-    S.unemp = S.unemp + ( 0.62*squeeze) - 0.16*(S.unemp - 4.4) + 0.16*carry;
+    // Jobs are hurt by the *size* of a shock's tail, not its direction — a demand
+    // collapse carries a negative inflation tail but still costs employment.
+    S.unemp = S.unemp + ( 0.62*squeeze) - 0.16*(S.unemp - 4.4) + 0.16*Math.abs(carry) + dU;
 
     // Deflation trap: falling prices raise real debts and postpone spending, so
     // demand and jobs deteriorate and the fall feeds on itself.
@@ -900,8 +1076,10 @@
     S.exp = clamp(S.exp, -2, 18);
 
     // A crisis leaves a tail measured in years, not quarters.
-    S.shockCarry = tier === 3 ? 1.55 : (tier === 2 ? 0.22 : (tier === 1 ? 0.10 : carry * 0.72));
-    if (S.shockCarry < 0.03) S.shockCarry = 0;
+    S.shockCarry = tier === 3 ? 1.55 : (tier === 2 ? 0.22 : (tier === 1 ? 0.10
+                 : (tier === 5 ? -0.80 : (tier === 4 ? -0.22 : carry * 0.72))));
+    if (regime && regime.carry !== undefined) S.shockCarry = regime.carry;
+    if (Math.abs(S.shockCarry) < 0.03) S.shockCarry = 0;
 
     S.lagged = decided;
     S.q++;
@@ -1136,7 +1314,7 @@
     rollScore(S.score);
     $("qName").textContent = S.over ? "Term complete" : QNAMES[S.q];
     $("qNum").textContent = (S.over ? QUARTERS + " quarters served" : "Quarter " + (S.q+1) + " of " + QUARTERS)
-      + (SCEN ? " · 1974" : "");
+      + (SCEN ? " · " + SCEN.key : SANDBOX ? " · SANDBOX" : "");
 
     $("iVal").textContent = S.infl.toFixed(1);
     $("uVal").textContent = S.unemp.toFixed(1);
@@ -1293,7 +1471,8 @@
     $("best").className = "nm" + (prevBest === null ? " hide" : (beat ? "" : " quiet"));
 
     $("qName").textContent = "Term complete";
-    $("qNum").textContent = QUARTERS + " quarters served";
+    $("qNum").textContent = QUARTERS + " quarters served"
+      + (SCEN ? " · " + SCEN.key : SANDBOX ? " · SANDBOX" : "");
     // Career: a term is only banked once, at the end.
     //
     // A sandbox is unranked outright — you chose the starting position, so
@@ -1583,32 +1762,93 @@
   });
   $("again").addEventListener("click", restart);
 
-  if (SCEN){
-    document.title = SCEN.name + " — Hold or Hike";
-    $("intro").querySelector("h1").innerHTML = SCEN.heading;
-    $("intro").querySelector(".standfirst").innerHTML = SCEN.standfirst;
-    $("sblink").classList.add("hide");
+  // ---------- Mode picker ----------
+  // One place decides what the intro screen says and which panel is showing, so
+  // switching tabs cannot leave a previous mode's title or rate ceiling behind.
+  var MODE_TITLE = {
+    modern: ["Hold or<br><span>Hike</span>",
+             "You are Governor of the Bank of England. It is August 2026: inflation is 2.6%, "
+             + "unemployment 4.9%, and the Middle East is on fire. You have five years."],
+    sandbox: ["Sandbox<br><span>Mode</span>",
+             "Set the economy you want to inherit, then run it for twenty quarters. "
+             + "Start at 20% inflation and try to break it, or at 2% and try not to ruin it."]
+  };
+
+  // Build the scenario cards once, from the map, so adding a scenario needs no
+  // extra markup.
+  $("scens").innerHTML = SCEN_ORDER.map(function(k){
+    var s = SCENARIOS[k];
+    return '<div class="sc" role="button" tabindex="0" data-key="'+k+'" aria-pressed="false">'
+      + '<span class="yr">'+k+'</span> <span class="nm2">'+s.name.split("· ")[1]+'</span>'
+      + '<span class="bl">'+s.blurb+'</span>'
+      // The standfirst is already in the title block above, so the open card
+      // only needs to offer the way through to the article.
+      + '<span class="more"><a href="scenario-'+k+'.html">Read the story →</a></span></div>';
+  }).join("");
+
+  function paintMode(){
+    var mode = SANDBOX ? "sandbox" : (SCEN ? "hist" : "modern");
+    var t = SCEN ? [SCEN.heading, SCEN.standfirst] : MODE_TITLE[mode];
+    $("intro").querySelector("h1").innerHTML = t[0];
+    $("intro").querySelector(".standfirst").innerHTML = t[1];
+    document.title = SCEN ? SCEN.name + " — Hold or Hike"
+                   : SANDBOX ? "Sandbox — Hold or Hike"
+                   : "Hold or Hike — the Bank rate game";
+
+    $("intro").querySelector(".guide").classList.toggle("hide", mode !== "modern");
+    $("scens").classList.toggle("hide", mode !== "hist");
+    $("sbox").classList.toggle("hide", mode !== "sandbox");
+
+    [["mModern","modern"],["mHist","hist"],["mSand","sandbox"]].forEach(function(p){
+      $(p[0]).setAttribute("aria-selected", String(p[1] === mode));
+    });
+    Array.prototype.forEach.call($("scens").children, function(el){
+      el.setAttribute("aria-pressed", String(!!SCEN && el.dataset.key === SCEN.key));
+    });
+
+    $("start").textContent = SCEN ? "TAKE OFFICE · " + SCEN.key
+                           : SANDBOX ? "RUN THE SANDBOX" : "TAKE OFFICE";
+
+    // Keep the address bar honest, so a copied link opens the same mode.
+    try {
+      var q = SCEN ? "?scenario=" + SCEN.key : SANDBOX ? "?sandbox" : location.pathname;
+      history.replaceState(null, "", SCEN || SANDBOX ? q : location.pathname);
+    } catch(e){}
   }
 
-  if (SANDBOX){
-    document.title = "Sandbox — Hold or Hike";
-    $("intro").querySelector("h1").innerHTML = "Sandbox<br><span>Mode</span>";
-    $("intro").querySelector(".standfirst").innerHTML =
-      "Set the economy you want to inherit, then run it for twenty quarters. "
-      + "Start at 20% inflation and try to break it, or at 2% and try not to ruin it.";
-    $("intro").querySelector(".guide").classList.add("hide");
-    $("sbox").classList.remove("hide");
-    $("sblink").classList.add("hide");
-
-    var sbI = $("sbI"), sbU = $("sbU"), sbR = $("sbR");
-    function paintSandbox(){
-      $("sbIv").textContent = (+sbI.value).toFixed(1) + "%";
-      $("sbUv").textContent = (+sbU.value).toFixed(1) + "%";
-      $("sbRv").textContent = (+sbR.value).toFixed(2) + "%";
-    }
-    [sbI, sbU, sbR].forEach(function(el){ el.addEventListener("input", paintSandbox); });
-    paintSandbox();
+  function setMode(mode, key){
+    SANDBOX = (mode === "sandbox");
+    SCEN = (mode === "hist") ? SCENARIOS[key || (SCEN ? SCEN.key : SCEN_ORDER[0])] : null;
+    applyMode();                 // sandbox re-applies its own numbers on start
+    slider.max = String(RATE_MAX);
+    paintMode();
+    restart();
   }
+
+  $("modes").addEventListener("click", function(e){
+    var b = e.target.closest("button[data-mode]");
+    if (b) { setMode(b.dataset.mode); SFX.pop(); }
+  });
+  $("scens").addEventListener("click", function(e){
+    // Let the "Read the story" link through rather than swallowing the tap.
+    if (e.target.closest("a")) return;
+    var c = e.target.closest(".sc");
+    if (c) { setMode("hist", c.dataset.key); SFX.pop(); }
+  });
+  $("scens").addEventListener("keydown", function(e){
+    if (e.key !== "Enter" && e.key !== " ") return;
+    var c = e.target.closest(".sc");
+    if (c) { e.preventDefault(); setMode("hist", c.dataset.key); }
+  });
+
+  var sbI = $("sbI"), sbU = $("sbU"), sbR = $("sbR");
+  function paintSandbox(){
+    $("sbIv").textContent = (+sbI.value).toFixed(1) + "%";
+    $("sbUv").textContent = (+sbU.value).toFixed(1) + "%";
+    $("sbRv").textContent = (+sbR.value).toFixed(2) + "%";
+  }
+  [sbI, sbU, sbR].forEach(function(el){ el.addEventListener("input", paintSandbox); });
+  paintSandbox();
 
   function paintMute(){ $("mute").textContent = soundOn ? "🔊" : "🔇"; }
   soundOn = career.sound !== false;
@@ -1641,6 +1881,7 @@
     tip.addEventListener("click", function(){ track("tip_click"); });
   }
 
+  paintMode();
   restart();
   initAds();
   initGA();
