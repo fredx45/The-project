@@ -3,23 +3,68 @@
 Everything still outstanding before this site can go live with ads, in the order
 worth doing it. Run `node preflight.js` at any point to see what is left.
 
+## Decisions already taken
+
+| | |
+|---|---|
+| **Operator** | **Hold or Hike** — a trading name, sole trader, no company |
+| **Target domain** | **holdorhike.com** — not yet purchased |
+| **Contact** | `hello@holdorhike.com`, via Cloudflare Email Routing (free) once the domain exists |
+| **Ad network** | Google AdSense |
+| **Analytics** | Google Analytics 4 |
+
+Two things about the operator choice, recorded so they are not rediscovered the
+hard way later:
+
+- A sole trader may use a trading name without registering anything. But an
+  ad-funded site is an "information society service" under the E-Commerce
+  Regulations 2002, which expect the provider's real name and a geographic
+  address to be accessible — and under UK GDPR the data controller is the
+  individual regardless of the name over the door. **This gap was accepted
+  deliberately.** Practical risk is low and enforcement is complaint-driven, but
+  it is a gap. Incorporating, with a registered-office service, is the clean fix
+  if that ever matters.
+- Avoid "bank" in any business name — it is restricted under financial services
+  legislation. Avoid "Threadneedle" too: it is an active trademark in financial
+  services. The same reasoning is why the domain does not contain
+  "bankofengland", even though the game keeps that title.
+
 ---
 
-## 1. Fill in the three written fields
+## 0. Before spending any money
 
-All three live in one block at the top of `privacy.html`, plus the contact
-address in `about.html`. They render in loud amber on the live page until
-replaced, so an unfilled field is obvious.
+- [ ] **Chain-of-command approval.** An ad-funded site is a secondary occupation
+      with income attached and will normally need permission. If the answer is
+      no, none of the rest matters — so ask first.
+- [ ] **Tax.** Ad revenue, however small, is self-employed income and brings a
+      self-assessment obligation.
+- [ ] **ICO data protection fee** (~£52/year). Ads and analytics are commercial
+      processing, so check the ICO's self-assessment tool before launch.
+
+---
+
+## 1. Fill in the two remaining written fields
+
+The operator is already set to Hold or Hike. What is left lives in one block at
+the top of `privacy.html`, plus the same contact address in `about.html`. Both
+render in loud amber on the live page until replaced, so an unfilled field is
+obvious.
 
 | Placeholder | Files | Replace with |
 |---|---|---|
-| `[your name or company]` | `privacy.html` | Your name, or the company name if you have one. UK GDPR needs a real identifiable operator. |
-| `[your email address]` | `privacy.html`, `about.html` | A contact address. Prefer a dedicated one — a published address gets scraped hard. |
+| `[your email address]` | `privacy.html`, `about.html` | `hello@holdorhike.com` once the domain and email routing exist. Never a personal address — published ones get scraped within days. |
 | `[date you publish]` | `privacy.html` | The date you actually publish, e.g. `12 August 2026`. |
 
-## 2. Buy a domain and point it at GitHub Pages
+## 2. Buy the domain and point it at GitHub Pages
 
-AdSense will not approve a `github.io` subdomain, so a real domain comes first.
+Buy **holdorhike.com** — Cloudflare Registrar if it carries the TLD (at-cost
+pricing, free WHOIS privacy, and the free email routing you need in step 5),
+otherwise Namecheap. Turn WHOIS privacy on. For any `.uk` domain, use Nominet's
+address opt-out for non-trading individuals.
+
+AdSense will not approve a `github.io` subdomain, so the real domain comes
+first. Buying it alone publishes nothing — the four steps below are what make
+the site visible, and they are yours to trigger when ready.
 
 Swap the placeholder host everywhere in one command, from the repo root:
 
@@ -31,7 +76,7 @@ grep -rl 'example\.com' --include='*.html' --include='*.xml' . \
 Then create a `CNAME` file at the repo root containing just your domain:
 
 ```sh
-echo 'yourdomain.co.uk' > CNAME
+echo 'holdorhike.com' > CNAME
 ```
 
 **DNS at your registrar** — four A records for the apex, pointing at GitHub:
@@ -77,6 +122,13 @@ route to a permanent ban.
 
 Realistic expectation: two to four weeks, rejection on first attempt is common,
 and UK rates for a game like this run about £1–3 per thousand views.
+
+## 4a. Set up the contact address
+
+In Cloudflare, enable **Email Routing** for the domain and forward
+`hello@holdorhike.com` to your existing inbox. Free, takes about five minutes,
+and keeps your personal address off the site. Then fill it into `privacy.html`
+and `about.html` along with the publish date.
 
 ## 4. Turn on analytics
 
