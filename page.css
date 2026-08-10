@@ -33,6 +33,10 @@ code{background:var(--raised);border:1px solid var(--line);border-radius:5px;
 table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13.5px;display:block;overflow-x:auto}
 th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
 th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:800}
+/* Unfilled placeholder: loud on purpose, so it cannot be published unnoticed. */
+.todo{background:rgba(255,193,69,.18);color:#FFC145;border-bottom:2px dotted #FFC145;
+  padding:1px 5px;border-radius:4px;font-weight:700}
+
 .play{display:inline-block;margin-top:30px;background:var(--cta);color:#fff;font-weight:900;
   text-decoration:none;padding:14px 22px;border-radius:14px;box-shadow:0 5px 0 #8E0F24}
 footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);

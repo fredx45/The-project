@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>About — Bank of England Governor</title>
-<meta name="description" content="What Bank of England Governor is, who made it, and how to get in touch.">
+<meta name="description" content="What Bank of England Governor is, why it was made, how it plays, and how to get in touch.">
 <meta name="theme-color" content="#0A0E1A">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23E0203C'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='40' font-weight='bold' text-anchor='middle' fill='white'%3E%C2%A3%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="page.css">
 </head>
 <body>
@@ -14,43 +15,65 @@
 
   <h1>About</h1>
   <p class="lede">A short browser game about the hardest job in British economic
-    policy, playable in about three minutes.</p>
+    policy. One decision a quarter, twenty quarters, about three minutes.</p>
 
   <h2>What it is</h2>
-  <p><strong>Bank of England Governor</strong> puts you in charge of Bank Rate for a
-    five-year term, starting in August 2026. Twenty quarterly decisions, two targets that
-    fight each other, an advisory Monetary Policy Committee, and energy shocks that arrive
-    without warning. Keep inflation between 1% and 3% and unemployment between 3% and 5%
-    and you keep your job. Most people don't, first time.</p>
-  <p>It runs entirely in your browser. There is no account, no login, and nothing is
-    uploaded — your medals and best score are stored on your own device.</p>
+  <p><strong>Bank of England Governor</strong> hands you Bank Rate for a five-year term
+    starting in August 2026. Inflation is 2.6%, unemployment is 4.9%, and the Middle East is
+    on fire. Each quarter you set the rate, the Monetary Policy Committee tells you what it
+    would have done, and the economy responds — a quarter later, which is the whole problem.</p>
+  <p>You are scored on holding inflation between 1% and 3% <em>and</em> unemployment between
+    3% and 5%, in the same quarter. Those two fight each other, which is the entire job.</p>
+  <p>It runs entirely in your browser. No account, no sign-up, nothing uploaded: your medals
+    and best score live on your own device and nowhere else.</p>
 
-  <h2>Why</h2>
-  <p>Monetary policy is discussed constantly and understood rarely. Everyone has an
-    opinion on whether the Bank should have raised rates sooner in 2021, and almost nobody
-    has felt what it is like to make that call with a one-quarter lag, an unobservable
-    neutral rate and a war in the news. Playing it for three minutes teaches the trade-off
-    better than reading about it for an hour.</p>
-  <p>If you want the machinery, it is all written up in
-    <a href="how-it-works.html">how the model works</a> — the equations, the calibration and
-    the things it deliberately ignores.</p>
+  <h2>Why it exists</h2>
+  <p>Monetary policy is argued about constantly and felt almost never. Everybody has a view
+    on whether the Bank should have moved sooner in 2021. Very few people have had to make
+    that call knowing the medicine takes a year to work, that the neutral rate is
+    unobservable, and that a war might start next quarter.</p>
+  <p>Three minutes of this teaches the trade-off better than an hour of reading about it.
+    That is the whole argument for the thing.</p>
 
-  <h2>Accuracy</h2>
-  <p>The starting conditions and the shock scale are grounded in real UK data, and the
-    relationships are the ones central banks actually reason about. It is still a toy: six
-    equations against an economy of 68 million people. Treat any resemblance to a forecast
-    as coincidence, and please do not use it to trade anything.</p>
+  <h2>How it plays</h2>
+  <ul>
+    <li><strong>Twenty quarters</strong> — Q3 2026 to Q2 2031, a full Governor's term.</li>
+    <li><strong>Bank Rate from 0% to 15%</strong>, in quarter-point steps. Yes, you can go
+      full Volcker. It works, and it costs you.</li>
+    <li><strong>Everything lags.</strong> A change bites the following quarter, never the
+      current one.</li>
+    <li><strong>Energy shocks</strong> in three sizes, the largest modelled on 2022 — enough
+      to put inflation into double digits and keep it there for years.</li>
+    <li><strong>An advisory MPC.</strong> Eight members tell you what they would have done.
+      They are often right. The decision is always yours.</li>
+    <li><strong>Eight medals</strong> and a career record, and a shareable grid of your
+      twenty quarters at the end.</li>
+  </ul>
 
-  <h2>Press and contact</h2>
-  <p>Happy to answer questions about the model, provide screenshots, or explain any of the
-    design choices. Get in touch at <strong>[your email address]</strong>.</p>
+  <h2>How accurate is it?</h2>
+  <p>The starting conditions are real August 2026 figures, the shock scale is drawn from the
+    1975 and 2022 episodes, and the relationships — the Phillips curve trade-off, policy
+    lags, expectations de-anchoring, a moving neutral rate — are the ones central banks
+    actually reason about.</p>
+  <p>It is still a toy. Six equations against an economy of 68 million people, with no
+    fiscal policy, no housing market, no banking system and a single interest rate standing
+    in for a yield curve. The full method, including what it deliberately ignores, is set
+    out in <a href="how-it-works.html">how the model works</a>. Do not trade on it.</p>
 
   <div class="box">
-    <p><strong>Quick facts for anyone writing about it:</strong> free, no sign-up, works on
-      any phone or desktop browser; a full term takes about three minutes; twenty quarters
-      covering Q3 2026 to Q2 2031; inflation can reach 25% and unemployment 18% in the worst
-      runs; eight unlockable medals; results share as a Wordle-style grid of green and red
-      quarters.</p>
+    <h3 style="margin-top:0">Quick facts</h3>
+    <p>Free, no sign-up, works in any modern phone or desktop browser · about three minutes a
+      term · twenty quarters covering Q3 2026 to Q2 2031 · inflation can reach 25% and
+      unemployment 18% in the worst runs · eight unlockable medals · results share as a grid
+      of green and red quarters, one row per year.</p>
+  </div>
+
+  <h2>Contact and press</h2>
+  <div class="box">
+    <p>Questions about the model, screenshots, or anything else:
+      <strong class="todo">[your email address]</strong></p>
+    <p>Happy to explain any of the design choices, or to provide a written summary of the
+      equations for anyone writing about it.</p>
   </div>
 
   <a class="play" href="index.html">Play the game →</a>
