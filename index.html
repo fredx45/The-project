@@ -282,6 +282,10 @@
   .tile.wide .lbl .scar b{font-size:11px}
   #gVal.neg{color:var(--bad)} #gVal.pos{color:var(--good)}
 
+  .freshlink{display:block;width:100%;margin-top:9px;padding:10px;border:0;background:none;
+    color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;
+    text-decoration:underline}
+
   /* ---- Mode picker ---- */
   .modes{display:flex;gap:4px;margin:0 0 10px;padding:4px;background:var(--panel);
     border:1px solid var(--line);border-radius:14px}
@@ -415,6 +419,7 @@
     <div class="ad-slot" id="adIntro" data-ad="intro">Advertisement</div>
 
     <div class="dock"><button class="go" id="start">TAKE OFFICE</button></div>
+    <button class="freshlink hide" id="freshLink">Start a fresh career instead</button>
   </div>
 
   <div class="hud hide" id="hud">
@@ -655,6 +660,23 @@
   // the kinder, more legible rule. Scenarios that start in a crisis set it.
   var PENALTY_TAIL = 0;
 
+  // ---------- Career storage ----------
+  // Loaded before applyMode() runs: a modern term may inherit from it.
+  var STORE = "boeGov.v1";
+  function freshCareer(){ return { games:0, bestScore:null, bestStreak:0, crisesSurvived:0, medals:[], sound:true }; }
+  function loadCareer(){
+    try {
+      var raw = localStorage.getItem(STORE);
+      if (!raw) return freshCareer();
+      var c = JSON.parse(raw);
+      if (!c || typeof c !== "object") return freshCareer();
+      if (!Array.isArray(c.medals)) c.medals = [];
+      return c;
+    } catch(e){ return freshCareer(); }
+  }
+  function saveCareer(){ try { localStorage.setItem(STORE, JSON.stringify(career)); } catch(e){} }
+  var career = loadCareer();
+
   // ---------- Scenarios ----------
   // A scenario replaces the starting conditions and swaps the random shock rolls
   // for a scripted schedule, so everyone plays the same history and results are
@@ -791,8 +813,18 @@
   // Reset every tunable to the modern default, then overlay the chosen mode.
   // Called at load and again whenever the picker changes mode, so no scenario
   // can leave its rate ceiling or its penalty tail behind.
+  // A modern term inherits the economy the previous Governor left, when there
+  // was one. Scenarios and sandbox never do — a second 1974 term would be
+  // 1979-83, which is a different history this scenario does not model.
+  var LEGACY = null;
   function applyMode(){
     var m = SCEN || MODERN;
+    LEGACY = (!SCEN && !SANDBOX && career.legacy) ? career.legacy : null;
+    if (LEGACY) m = {
+      start: { rate: LEGACY.rate, inflation: LEGACY.infl, unemployment: LEGACY.unemp },
+      exp: LEGACY.exp, global: LEGACY.global,
+      startYear: MODERN.startYear + 5 * (LEGACY.term - 1), startQ: MODERN.startQ
+    };
     START        = m.start;
     START_EXP    = m.exp;
     GLOBAL_RATE  = m.global;
@@ -978,20 +1010,6 @@
   // ---------- Career (persisted) ----------
   // Everything here is best-effort: Safari private mode throws on setItem, and
   // the game has to stay fully playable when storage is unavailable.
-  var STORE = "boeGov.v1";
-  function freshCareer(){ return { games:0, bestScore:null, bestStreak:0, crisesSurvived:0, medals:[], sound:true }; }
-  function loadCareer(){
-    try {
-      var raw = localStorage.getItem(STORE);
-      if (!raw) return freshCareer();
-      var c = JSON.parse(raw);
-      if (!c || typeof c !== "object") return freshCareer();
-      if (!Array.isArray(c.medals)) c.medals = [];
-      return c;
-    } catch(e){ return freshCareer(); }
-  }
-  function saveCareer(){ try { localStorage.setItem(STORE, JSON.stringify(career)); } catch(e){} }
-  var career = loadCareer();
 
   var MEDALS = [
     { id:"soft",   emoji:"🎯", name:"Soft Landing",         hint:"End on target with unemployment under 4.5%",
@@ -1023,7 +1041,10 @@
       exp:START_EXP,
       // Output gap and accumulated scarring. The gap is seeded from the starting
       // unemployment so the two agree from quarter one.
-      ogap: 2*(NATURAL_BASE - START.unemployment), scar: 0,
+      // With an inherited economy the gap and the scar come straight across, so
+      // the opening unemployment reproduces exactly what the last term left.
+      ogap: LEGACY ? LEGACY.ogap : 2*(NATURAL_BASE - START.unemployment),
+      scar: LEGACY ? LEGACY.scar : 0,
       global:GLOBAL_RATE, globalDrift:0,
       // A scenario plays the same history for everyone, so it does not roll a
       // hidden drift direction — but it may state one, where world rates
@@ -1033,9 +1054,9 @@
       // Credibility: how readily the public believes the target when you are
       // hitting it. Moved only by the letter to the Chancellor. At 1.0 it scales
       // nothing, which is where a player who never breaches stays.
-      cred: 1.0,
+      cred: LEGACY ? LEGACY.cred : 1.0,
       // Asset purchases, in £bn, lagged a quarter like the rate.
-      qe: 0, qeLagged: 0, qePeak: 0,
+      qe: LEGACY ? LEGACY.qe : 0, qeLagged: LEGACY ? LEGACY.qe : 0, qePeak: 0,
       pledgeUntil: 0, pledgeFailed: false, letterChoice: null,
       score:0, bandPoints:0, missPoints:0, fightPoints:0, streak:0, bestStreak:0,
       crisisFired:false, crisisPenalty:0,
@@ -1620,6 +1641,9 @@
     // a 1974-scale energy crisis in it cannot be judged against a calm one.
     var par = SCEN ? SCEN.par : Math.max(12 - 45*S.crisisHits - 4*S.majorHits, -95);
 
+    // Decided before the results lines are built, because one of them reports it.
+    var reappointed = !SCEN && !SANDBOX && S.score >= par;
+
     var lines = [
       ["Quarters on target", "+" + S.bandPoints, true],
       ["Longest run in both bands", S.bestStreak + (S.bestStreak===1?" quarter":" quarters"), S.bestStreak >= 5 ? true : null],
@@ -1632,6 +1656,9 @@
       lines.push(["Lasting damage to the jobless floor", "+" + S.scar.toFixed(1) + "pp", false]);
     if (S.qePeak > 0)
       lines.push(["Peak balance sheet", "£" + Math.round(S.qePeak) + "bn", null]);
+    if (!SCEN && !SANDBOX)
+      lines.push([reappointed ? "Reappointed for another term" : "Not reappointed",
+                  reappointed ? "yes" : "—", reappointed]);
     if (S.letterChoice === "pledged")
       lines.push(["Pledge to the Chancellor", S.pledgeFailed ? "broken" : "honoured", !S.pledgeFailed]);
     if (S.dissents) lines.push(["Meetings with the Committee split", String(S.dissents) + "×", null]);
@@ -1690,6 +1717,24 @@
         career.bestScore = Math.round(S.score);
       if (S.bestStreak > career.bestStreak) career.bestStreak = S.bestStreak;
       career.crisesSurvived += S.crisisHits;
+    }
+
+    // Reappointment. Leave the modern economy in reasonable shape — par or
+    // better — and you serve again, inheriting exactly what you left: the
+    // inflation, the jobs, the expectations, your credibility, the balance
+    // sheet, and the scar. Especially the scar. Scenarios are fixed points in
+    // history and a sandbox is unranked, so neither carries forward.
+    if (reappointed){
+      career.legacy = {
+        term: (LEGACY ? LEGACY.term : 1) + 1,
+        infl: S.infl, unemp: S.unemp, ogap: S.ogap, exp: S.exp,
+        scar: S.scar, cred: S.cred, rate: S.lagged, qe: S.qe, global: S.global
+      };
+      saveCareer();
+    } else if (!SCEN && !SANDBOX && career.legacy){
+      // Fall short and the dynasty ends there; the next term starts clean.
+      delete career.legacy;
+      saveCareer();
     }
 
     var earned = [];
@@ -2132,6 +2177,18 @@
   function paintMode(){
     var mode = SANDBOX ? "sandbox" : (SCEN ? "hist" : "modern");
     var t = SCEN ? [SCEN.heading, SCEN.standfirst] : MODE_TITLE[mode];
+    // A returning Governor is told what they are walking back into.
+    if (mode === "modern" && LEGACY){
+      t = ["Re<br><span>appointed</span>",
+           "They have asked you to stay on. You inherit the economy you left: inflation "
+           + f1(LEGACY.infl) + ", unemployment " + f1(LEGACY.unemp) + ", Bank Rate "
+           + pct(LEGACY.rate) + "."
+           + (LEGACY.qe >= 1 ? " A balance sheet of £" + Math.round(LEGACY.qe) + "bn." : "")
+           + (LEGACY.scar >= 0.05
+              ? " And " + LEGACY.scar.toFixed(1) + "pp of damage that will not heal — the "
+                + "jobless floor is higher than it was, and easing will not bring it back."
+              : " No lasting damage. Try to keep it that way.")];
+    }
     $("intro").querySelector("h1").innerHTML = t[0];
     $("intro").querySelector(".standfirst").innerHTML = t[1];
     document.title = SCEN ? SCEN.name + " — Hold or Hike"
@@ -2150,7 +2207,9 @@
     });
 
     $("start").textContent = SCEN ? "TAKE OFFICE · " + SCEN.key
-                           : SANDBOX ? "RUN THE SANDBOX" : "TAKE OFFICE";
+                           : SANDBOX ? "RUN THE SANDBOX"
+                           : LEGACY ? "SERVE AGAIN · TERM " + LEGACY.term : "TAKE OFFICE";
+    $("freshLink").classList.toggle("hide", !(mode === "modern" && LEGACY));
 
     // Keep the address bar honest, so a copied link opens the same mode.
     try {
@@ -2167,6 +2226,11 @@
     paintMode();
     restart();
   }
+
+  $("freshLink").addEventListener("click", function(){
+    delete career.legacy; saveCareer();
+    applyMode(); paintMode(); restart(); SFX.pop();
+  });
 
   $("modes").addEventListener("click", function(e){
     var b = e.target.closest("button[data-mode]");
