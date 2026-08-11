@@ -180,18 +180,12 @@
   /* ---- Asset purchases and guidance ---- */
   .qe{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
   .qe .v{color:var(--good)}
-  .grow{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;
-    border-top:1px solid var(--line)}
-  .grow .l{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.1px;
-    color:var(--muted);flex:0 0 auto}
-  .gseg{display:flex;gap:3px;flex:1 1 auto;min-width:0;padding:3px;background:var(--raised);
-    border:1px solid var(--line);border-radius:11px}
-  .gseg button{flex:1 1 0;min-width:0;padding:8px 2px;border:0;border-radius:8px;
-    background:transparent;color:var(--muted);font-family:inherit;font-size:11px;
-    font-weight:800;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .gseg button[aria-pressed=true]{background:var(--infl);color:#08111F}
-  .gseg button:disabled{opacity:.35;cursor:default}
-  .grow.locked .gseg{opacity:.55}
+  /* Locked, not hidden: you should always know the second lever is there, and
+     what has to happen before you can reach it. */
+  .qe.locked{opacity:.5}
+  .qe.locked .v{color:var(--muted)}
+  .qe input[type=range]:disabled,.qe .step:disabled{cursor:default}
+
   .app.quake{animation:quake .45s cubic-bezier(.36,.07,.19,.97)}
   @keyframes quake{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(4px,-2px)}
     30%,50%,70%{transform:translate(-6px,2px)}40%,60%{transform:translate(6px,-1px)}}
@@ -399,6 +393,9 @@
         double digits for years.</span></li>
       <li><span class="n">5</span><span><b>The Committee only advises</b>
         Eight members tell you what they'd have done. The decision is always yours.</span></li>
+      <li><span class="n">6</span><span><b>Below 1%, the rate runs out of room</b>
+        Asset purchases unlock instead: quick to start, slow to stop. The 2008 scenario
+        is where you will need them.</span></li>
     </ol>
 
     <!-- Sandbox setup, shown in place of the guide when ?sandbox is set -->
@@ -487,7 +484,7 @@
       <div class="hint" id="hint">Holding at 3.75%</div>
 
       <!-- Asset purchases: only appears once Bank Rate has run out of room -->
-      <div class="qe hide" id="qeRow">
+      <div class="qe locked" id="qeRow">
         <div class="rateline"><span class="l">Asset purchases</span><span class="v" id="qeVal">£0bn</span></div>
         <div class="row">
           <button class="step" id="qeDown" aria-label="Buy less, or sell">−</button>
@@ -496,17 +493,6 @@
         </div>
         <div class="hint" id="qeHint">Effective rate 0.50%</div>
       </div>
-
-      <div class="grow" id="guideRow">
-        <span class="l">Guidance</span>
-        <div class="gseg" id="gseg">
-          <button data-g="none" aria-pressed="true">None</button>
-          <button data-g="hold" aria-pressed="false">Hold</button>
-          <button data-g="cut" aria-pressed="false">Cut</button>
-          <button data-g="raise" aria-pressed="false">Raise</button>
-        </div>
-      </div>
-      <div class="hint" id="guideHint">No guidance given. Your word costs nothing, and buys nothing.</div>
 
       <button class="go" id="go">SET RATE &amp; ADVANCE</button>
     </div>
@@ -1045,13 +1031,11 @@
       globalBias: SCEN ? (SCEN.globalBias || 0)
                        : [-0.075,-0.04,0,0.04,0.075][(Math.random()*5)|0],
       // Credibility: how readily the public believes the target when you are
-      // hitting it. Earned by keeping guidance, spent in the letter. At 1.0 it
-      // scales nothing, which is the state a player who ignores both stays in.
+      // hitting it. Moved only by the letter to the Chancellor. At 1.0 it scales
+      // nothing, which is where a player who never breaches stays.
       cred: 1.0,
       // Asset purchases, in £bn, lagged a quarter like the rate.
       qe: 0, qeLagged: 0, qePeak: 0,
-      guide: null,          // { dir, until, rateAt }
-      guideKept: 0, guideBroken: 0,
       pledgeUntil: 0, pledgeFailed: false, letterChoice: null,
       score:0, bandPoints:0, missPoints:0, fightPoints:0, streak:0, bestStreak:0,
       crisisFired:false, crisisPenalty:0,
@@ -1208,8 +1192,8 @@
     var chase = 0.10 + 0.16 * clamp((S.infl - 5) / 10, 0, 1);
     S.exp += chase * (S.infl - S.exp);
     // Credibility scales how fast the target re-anchors expectations. A Governor
-    // whose word has been good gets believed sooner; one who has broken guidance
-    // has to prove it with outcomes instead.
+    // who owned the last overshoot is believed sooner than one who blamed it on
+    // the weather.
     if (inBand(S.infl, INFL_BAND)) S.exp += 0.20 * S.cred * (2.0 - S.exp);
     S.exp = clamp(S.exp, -2, 18);
 
@@ -1525,7 +1509,7 @@
     $("gSwatch").style.background = g < 0 ? "var(--bad)" : "var(--good)";
     $("scarVal").textContent = S.scar.toFixed(1);
     $("scarBox").classList.toggle("hide", S.scar < 0.05);
-    paintQE(); paintGuide();
+    paintQE();
     arrow("iArr", S.infl, S.prevInfl);
     arrow("uArr", S.unemp, S.prevUnemp);
     var iWasOut = $("tileI").classList.contains("out"), uWasOut = $("tileU").classList.contains("out");
@@ -1648,9 +1632,6 @@
       lines.push(["Lasting damage to the jobless floor", "+" + S.scar.toFixed(1) + "pp", false]);
     if (S.qePeak > 0)
       lines.push(["Peak balance sheet", "£" + Math.round(S.qePeak) + "bn", null]);
-    if (S.guideKept || S.guideBroken)
-      lines.push(["Guidance kept", S.guideKept + " of " + (S.guideKept + S.guideBroken),
-                  S.guideBroken === 0]);
     if (S.letterChoice === "pledged")
       lines.push(["Pledge to the Chancellor", S.pledgeFailed ? "broken" : "honoured", !S.pledgeFailed]);
     if (S.dissents) lines.push(["Meetings with the Committee split", String(S.dissents) + "×", null]);
@@ -1993,8 +1974,16 @@
   function qeUnlocked(){ return S.rate <= QE_UNLOCK || S.qe > 0; }
   function paintQE(){
     var on = qeUnlocked();
-    $("qeRow").classList.toggle("hide", !on);
-    if (!on) return;
+    $("qeRow").classList.toggle("locked", !on);
+    qeBuy.disabled = !on;
+    $("qeUp").disabled = !on;
+    $("qeDown").disabled = !on;
+    if (!on){
+      $("qeVal").textContent = "£" + Math.round(S.qe) + "bn";
+      $("qeHint").textContent = "Unlocks at Bank Rate 1% — when cutting has run out of "
+        + "room, this is the lever that is left.";
+      return;
+    }
     // You cannot sell what you do not hold, and unwinding is capped.
     qeBuy.min = String(-Math.min(QE_SELL_MAX, Math.round(S.qe/25)*25));
     var planned = clamp(+qeBuy.value, +qeBuy.min, QE_BUY_MAX);
@@ -2014,64 +2003,6 @@
     qeBuy.value = String(Math.max(+qeBuy.min, +qeBuy.value - 25)); paintQE(); SFX.pop();
   });
 
-  // ---------- Forward guidance ----------
-  var GUIDE_TEXT = {
-    hold:  "You have said Bank Rate will hold near " ,
-    cut:   "You have said Bank Rate will not rise above ",
-    raise: "You have said Bank Rate will not fall below "
-  };
-  function paintGuide(){
-    var active = !!S.guide;
-    $("guideRow").classList.toggle("locked", active);
-    Array.prototype.forEach.call($("gseg").children, function(b){
-      b.disabled = active;
-      b.setAttribute("aria-pressed", String(active ? b.dataset.g === S.guide.dir
-                                                   : b.dataset.g === "none"));
-    });
-    if (active){
-      var left = S.guide.until - S.q;
-      $("guideHint").textContent = GUIDE_TEXT[S.guide.dir] + pct(S.guide.rateAt)
-        + " for " + left + (left === 1 ? " more quarter." : " more quarters.")
-        + " Break it and they stop believing you.";
-    } else if (S.cred > 1.05){
-      $("guideHint").textContent = "Your word has been good. The target is believed sooner when you hit it.";
-    } else if (S.cred < 0.95){
-      $("guideHint").textContent = "You broke your guidance. Expectations will take longer to settle.";
-    } else {
-      $("guideHint").textContent = "No guidance given. Your word costs nothing, and buys nothing.";
-    }
-  }
-  $("gseg").addEventListener("click", function(e){
-    var b = e.target.closest("button[data-g]");
-    if (!b || b.disabled || S.guide) return;
-    if (b.dataset.g !== "none"){
-      S.guide = { dir: b.dataset.g, until: S.q + 4, rateAt: S.rate };
-      SFX.pop();
-    }
-    paintGuide();
-  });
-
-  // Judged after the decision lands: did this quarter's rate honour the promise?
-  function checkGuide(decided){
-    if (!S.guide) return null;
-    var g = S.guide, ok;
-    if (g.dir === "hold")       ok = Math.abs(decided - g.rateAt) <= 0.25;
-    else if (g.dir === "cut")   ok = decided <= g.rateAt + 0.001;
-    else                        ok = decided >= g.rateAt - 0.001;
-    if (!ok){
-      S.guide = null; S.guideBroken++;
-      S.cred = Math.max(0.6, S.cred - 0.4);
-      S.score -= 6;
-      return "broken";
-    }
-    if (S.q >= g.until){
-      S.guide = null; S.guideKept++;
-      S.cred = Math.min(1.4, S.cred + 0.2);
-      S.score += 6;
-      return "kept";
-    }
-    return null;
-  }
 
   $("go").addEventListener("click", function(){
     if (S.over) return;
@@ -2089,7 +2020,6 @@
     }
 
     var out = step(proposal);
-    var guideOut = checkGuide(proposal);
 
     // A pledge made in the letter comes due four quarters later.
     if (S.pledgeUntil && S.q >= S.pledgeUntil){
