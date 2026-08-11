@@ -184,12 +184,22 @@ Rejection is common and not the end. In order of what to try:
    months of ad pennies, and it suits the audience.
 5. **A tip jar.** No approval, no review, five minutes.
 
-**Deliberately not used:** Adsterra, PropellerAds and similar. They approve
-almost anyone but lean on pop-unders and redirects, which would wreck a clean
-three-minute game.
+**Deliberately not used:** Adsterra, PropellerAds, Monetag and similar. They
+approve almost anyone, in hours, because they monetise with pop-unders, push
+notifications and redirects.
+
+Be precise about why that matters, because the looser version of this claim is
+wrong. **AdSense does not forbid running other ad networks** — plenty of
+publishers run several side by side. The rule is that any page carrying AdSense
+must comply with AdSense policy, and pop-unders, forced redirects and intrusive
+interstitials breach it. So Ezoic or Media.net alongside AdSense is fine; an
+Adsterra tag is what puts the application at risk. It would also ruin a
+three-minute mobile game, which is reason enough on its own.
 
 The honest bottom line: traffic matters far more than the network. An approved
-site with no visitors earns nothing.
+site with no visitors earns nothing. At £1–3 per thousand views, ten visitors is
+about two pence — so until traffic exists, the choice of network is a rounding
+error. See section 6.
 
 ## 3b. Google Search Console — and the stale title
 
@@ -238,17 +248,130 @@ describes them.
       share sheet opens
 - [ ] The consent banner appears on first visit from a UK IP
 
-## 6. Where the players are
+## 6. Getting people to play it
 
-Free, on your own domain, with the share grid doing the work:
+The site has been the easy part. This is the hard part, and it is worth being
+systematic about rather than posting a link somewhere and hoping.
 
-- **FT Alphaville** — squarely their register, and worth more than any other
-  single mention
-- **Hacker News** — "Show HN: I built a game where you set UK interest rates for
-  five years". Lead with the job, not the institution: the site is deliberately
-  not branded around the Bank's name, and the launch copy should match.
-- **r/ukpolitics, r/badeconomics, r/AskEconomics**
-- **Econ Twitter/Bluesky** — the MoneyWeek, IFS and economics-commentator orbit
+### The one distinction that matters
 
-Post the same week, not spread out — one coordinated push gives the share grid
-the best chance of compounding.
+**A spike is one day. Recurring is every year.**
+
+| | Channel | What it gives you |
+|---|---|---|
+| Spike | Reddit, Hacker News | Hundreds to low thousands in a day, then nothing |
+| Recurring | Teachers, search | Less at first, then every term and every year |
+
+Ad revenue rewards the second kind far more than the first. Plan for both, but
+do not mistake a good Reddit day for traction.
+
+### Phase 0 — now, while AdSense is in review
+
+**Do not launch yet.** You get one first post to each community, and spending it
+while ads serve blank wastes the only shot you have at monetising the spike.
+
+What to do instead:
+- Search Console and re-indexing — section 3b. The SEO clock starts the day
+  Google can crawl you properly, so this is the one thing worth doing today.
+- Take a good screenshot of a finished term — the results screen with the green
+  and red grid is the most arresting image the site has.
+- Draft the posts below so launch day is copy-paste, not composition.
+
+### Phase 1 — launch week, once ads actually serve
+
+Run these inside one week, not spread out. Each one feeds the next: a Reddit
+thread gives a Show HN post social proof, and both give a journalist a reason to
+look.
+
+| Day | Where | Notes |
+|---|---|---|
+| Mon | **r/WebGames** | Best pure fit. Friendly to browser games, no self-promo hostility |
+| Tue | **r/ukpolitics**, **r/badeconomics**, **r/AskEconomics** | Read each sub's self-promotion rule first. r/ukpolitics is strict |
+| Wed | **Show HN** | Post 08:00–10:00 UK. Title below |
+| Thu | **FT Alphaville** and econ journalists | Email below |
+| Fri | **Teachers** | The one that keeps paying. See Phase 2 |
+
+Reddit accounts with no history get removed on sight in most of these subs. If
+you have no usable account, spend Phase 0 commenting normally in one or two of
+them so you are not a drive-by.
+
+### Phase 2 — the channels that compound
+
+**A-level Economics teachers.** The most undervalued audience you have. UK
+teachers hunt constantly for something that makes monetary policy concrete, and
+your three scenarios are lesson activities that play in three minutes on a
+phone. One head of department sharing it inside a school is traffic every year,
+not one afternoon. Reach them through TES resources, the #EconTwitter and
+#EconTeacher tags, the Economics Network, and tutor2u's community.
+
+**Search.** The three articles are genuinely searchable — people look up "Black
+Wednesday explained", "why was inflation 25% in the 1970s", "what did QE
+actually do". This builds over months and never stops. It is the reason to keep
+writing scenario articles even after AdSense approves.
+
+### Copy you can send as-is
+
+**Show HN title** — no personal story available, so lead with the thing:
+
+> Show HN: A browser game where you set UK interest rates for five years
+
+**Reddit, r/WebGames:**
+
+> **Hold or Hike — you run UK monetary policy for five years**
+>
+> Free, no signup, plays in about three minutes on a phone. You set the interest
+> rate each quarter and try to keep inflation and unemployment both on target,
+> which is harder than it sounds because every change takes a quarter to bite.
+>
+> There are three historical scenarios — 1974, Black Wednesday, and 2008 — where
+> the real shocks are scripted, so you can see whether you would have done
+> better than the people who were actually there. Mostly you would not.
+>
+> holdorhike.com
+
+**FT Alphaville / journalists** — short, no pitch language:
+
+> Subject: A browser game about setting Bank Rate
+>
+> I built a small free game where you set UK interest rates for a five-year term
+> and try to hold inflation and unemployment on target. It has scripted
+> scenarios for 1974, 1992 and 2008 — playing the rate path the MPC actually ran
+> reproduces the history fairly closely, which surprised me.
+>
+> No signup, no tracking beyond analytics, plays in three minutes:
+> holdorhike.com
+>
+> Happy to explain any of the modelling if it is useful.
+
+**Teachers:**
+
+> Subject: Free monetary policy activity for A-level Economics
+>
+> I have made a free browser game where students set Bank Rate for twenty
+> quarters and try to keep CPI and unemployment inside target bands. It takes
+> about three minutes, works on any phone, needs no signup or logins, and there
+> are historical scenarios for 1974, 1992 and 2008.
+>
+> The model is written out in full at holdorhike.com/how-it-works.html if you
+> want to check it before putting it in front of a class.
+
+### A constraint to plan around
+
+You cannot be personally identifiable, so the founder story is unavailable. That
+matters most on Hacker News, where "I built this and here is why" does a lot of
+the work. Post as Hold or Hike and let the thing speak. It costs you little on
+Reddit and nothing at all with teachers.
+
+### What good actually looks like
+
+So the numbers are not a surprise later:
+
+- A well-received r/WebGames post: perhaps 2,000–10,000 views in a day.
+- A Show HN that reaches the front page: 5,000–20,000. Most do not reach it.
+- Both together, at UK rates, might be £10–40. Once.
+- A teacher who puts it in a scheme of work: a few hundred a year, every year,
+  for no further effort.
+
+That contrast is the whole strategy. Chase the spike for the share grid and the
+backlinks; build the recurring channels for the revenue.
+
