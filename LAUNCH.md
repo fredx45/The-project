@@ -164,25 +164,35 @@ and UK rates for a game like this run about £1–3 per thousand views.
 
 ## 3a. If AdSense rejects
 
-Rejection is common and not the end. In order of what to try:
+**Read this first: at current traffic there is no alternative to fall back on.**
 
-1. **Fix and reapply.** There is no limit on attempts, and AdSense pays better
-   than every alternative below, so it is worth two or three goes. The usual
-   reason given is "low value content": add real writing, wait a couple of
-   weeks, resubmit. The FAQ, how-it-works and 1974 pages exist for exactly this.
-   The next two pieces of writing, if more is needed, are a strategy guide and a
-   second historical scenario — 1992 (the ERM) or 2022 (Ukraine). The scenario
-   machinery takes one entry in the `SCENARIOS` map plus an article.
-2. **Ezoic.** Accepts much smaller sites, respectable rates, but it inserts its
-   own layer via Cloudflare or a script and can be heavy-handed with a carefully
-   built mobile layout.
-3. **Media.net.** Contextual ads from the Yahoo/Bing network. Standards similar
-   to AdSense, and it earns mainly on US traffic, which this site will not have
-   much of.
-4. **A direct sponsor.** At low volume this beats programmatic. One "supported
-   by" line sold to a fintech or an economics newsletter can be worth more than
-   months of ad pennies, and it suits the audience.
-5. **A tip jar.** No approval, no review, five minutes.
+Almost every other ad network sets a traffic floor, and they are high. Figures
+believed correct but **worth checking yourself, because they change and one of
+them has already caught us out** — Ezoic was checked in August 2026 and requires
+**250,000 monthly visits**, having previously had a far lower bar. Mediavine and
+Raptive are in the tens of thousands of sessions and upward. Media.net publishes
+no hard floor but is selective, and earns mainly on US traffic this site will
+not have.
+
+AdSense having **no traffic minimum** is precisely why it is the target, and why
+the answer to rejection is to fix and reapply rather than to shop around.
+
+So, in order:
+
+1. **Fix and reapply.** No limit on attempts. The usual reason given is "low
+   value content": add real writing, wait a couple of weeks, resubmit. The FAQ,
+   how-it-works and the three scenario articles exist for exactly this. The next
+   pieces of writing, if more are needed, are a strategy guide and a 2022
+   (Ukraine) scenario — the machinery takes one entry in `SCENARIOS` plus an
+   article.
+2. **Build traffic and reapply again.** Section 6. This is the real answer: it
+   fixes the rejection reason and unlocks every other network at the same time.
+3. **A direct sponsor.** The one option with no threshold. One "supported by"
+   line sold to a fintech or an economics newsletter can beat months of
+   programmatic pennies, and it suits the audience. Still needs enough traffic to
+   be sellable, but that is hundreds a month, not hundreds of thousands.
+4. **The tip jar.** Already live. No approval, no review, no minimum.
+5. **Revisit the networks above** once traffic clears their floors.
 
 **Deliberately not used:** Adsterra, PropellerAds, Monetag and similar. They
 approve almost anyone, in hours, because they monetise with pop-unders, push
@@ -192,14 +202,13 @@ Be precise about why that matters, because the looser version of this claim is
 wrong. **AdSense does not forbid running other ad networks** — plenty of
 publishers run several side by side. The rule is that any page carrying AdSense
 must comply with AdSense policy, and pop-unders, forced redirects and intrusive
-interstitials breach it. So Ezoic or Media.net alongside AdSense is fine; an
-Adsterra tag is what puts the application at risk. It would also ruin a
-three-minute mobile game, which is reason enough on its own.
+interstitials breach it. So Ezoic or Media.net alongside AdSense would be fine
+if you qualified; an Adsterra tag is what puts the application at risk. It would
+also ruin a three-minute mobile game, which is reason enough on its own.
 
-The honest bottom line: traffic matters far more than the network. An approved
-site with no visitors earns nothing. At £1–3 per thousand views, ten visitors is
-about two pence — so until traffic exists, the choice of network is a rounding
-error. See section 6.
+The honest bottom line: traffic matters far more than the network. At £1–3 per
+thousand views, ten visitors is about two pence — and below a few hundred
+thousand a month, most networks will not take you at any price. Section 6.
 
 ## 3b. Google Search Console — and the stale title
 
