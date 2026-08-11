@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Hold or Hike</title>
+<title>Hold or Hike — a UK interest rate game</title>
 <meta name="description" content="Twenty quarters. Two targets. Set UK Bank Rate, survive the shocks, keep your job.">
 <meta name="theme-color" content="#0A0E1A">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8246785320309196" crossorigin="anonymous"></script>
@@ -12,14 +12,14 @@
 <link rel="apple-touch-icon" href="https://holdorhike.com/apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Hold or Hike">
-<meta property="og:title" content="Hold or Hike">
+<meta property="og:title" content="Hold or Hike — a UK interest rate game">
 <meta property="og:description" content="Twenty quarters. Two targets. Set UK Bank Rate, survive the shocks, keep your job.">
 <meta property="og:url" content="https://holdorhike.com/">
 <meta property="og:image" content="https://holdorhike.com/share.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Hold or Hike">
+<meta name="twitter:title" content="Hold or Hike — a UK interest rate game">
 <meta name="twitter:description" content="Can you keep inflation and unemployment on target for five years?">
 <meta name="twitter:image" content="https://holdorhike.com/share.png">
 <!--
@@ -499,7 +499,8 @@
     </div>
   </div>
 
-  <footer>A simplified model, for entertainment. Not economic advice, and not the MPC.<br>
+  <footer>An independent game. Not affiliated with, endorsed by, or connected to the
+    Bank of England. A simplified model, for entertainment — not economic advice.<br>
     <a href="how-it-works.html">How the model works</a> · <a href="faq.html">Questions</a> · <a href="scenario-1974.html">1974</a> · <a href="scenario-1992.html">1992</a> · <a href="scenario-2008.html">2008</a> ·
     <a href="about.html">About</a> · <a href="privacy.html">Privacy</a> ·
     <a href="https://buymeacoffee.com/holdorhike" target="_blank" rel="noopener">Buy me a coffee</a></footer>
@@ -1915,6 +1916,12 @@
       + '<span class="more"><a href="scenario-'+k+'.html">Read the story →</a></span></div>';
   }).join("");
 
+  // The title the crawler sees in the served HTML. paintMode() must restore
+  // exactly this in modern mode: Google renders the page on a second indexing
+  // pass, and a runtime title that disagrees with the static one invites it to
+  // substitute a title of its own choosing.
+  var STATIC_TITLE = "Hold or Hike — a UK interest rate game";
+
   function paintMode(){
     var mode = SANDBOX ? "sandbox" : (SCEN ? "hist" : "modern");
     var t = SCEN ? [SCEN.heading, SCEN.standfirst] : MODE_TITLE[mode];
@@ -1922,7 +1929,7 @@
     $("intro").querySelector(".standfirst").innerHTML = t[1];
     document.title = SCEN ? SCEN.name + " — Hold or Hike"
                    : SANDBOX ? "Sandbox — Hold or Hike"
-                   : "Hold or Hike — the Bank rate game";
+                   : STATIC_TITLE;
 
     $("intro").querySelector(".guide").classList.toggle("hide", mode !== "modern");
     $("scens").classList.toggle("hide", mode !== "hist");

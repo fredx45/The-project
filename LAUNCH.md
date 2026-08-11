@@ -191,6 +191,30 @@ three-minute game.
 The honest bottom line: traffic matters far more than the network. An approved
 site with no visitors earns nothing.
 
+## 3b. Google Search Console — and the stale title
+
+For a window in August the page title read "Hold or Hike — the Bank of England
+game". It was removed on 10 August, but Google cached it and kept showing it in
+results long after the site stopped saying it. Everything on the site now uses
+**"Hold or Hike — a UK interest rate game"**, in the served HTML, the social
+tags and the JavaScript alike — but a code change alone will not refresh
+Google's copy.
+
+1. **search.google.com/search-console** → Add property → **Domain** →
+   `holdorhike.com`
+2. It gives you a **TXT record** to add. Cloudflare → holdorhike.com → DNS →
+   Add record → Type `TXT`, Name `@`, paste the value → Save → back to Google →
+   **Verify**
+3. **URL Inspection**, enter `https://holdorhike.com/`, then
+   **Request Indexing**
+
+Allow a few days. Search Console is also where you will see what people search
+to find the site, which is worth having regardless.
+
+**Why the title matters beyond this:** a short generic title invites Google to
+write its own from page content. A descriptive one it can use as-is is the best
+defence against it inventing another.
+
 ## 4. Turn on analytics
 
 Create a GA4 property, then set the measurement ID in `index.html`:
@@ -220,7 +244,9 @@ Free, on your own domain, with the share grid doing the work:
 
 - **FT Alphaville** — squarely their register, and worth more than any other
   single mention
-- **Hacker News** — "Show HN: I built a game where you run the Bank of England"
+- **Hacker News** — "Show HN: I built a game where you set UK interest rates for
+  five years". Lead with the job, not the institution: the site is deliberately
+  not branded around the Bank's name, and the launch copy should match.
 - **r/ukpolitics, r/badeconomics, r/AskEconomics**
 - **Econ Twitter/Bluesky** — the MoneyWeek, IFS and economics-commentator orbit
 
