@@ -40,6 +40,36 @@
     regardless of what you do to prices. Try to hold unemployment permanently below it and
     you buy nothing but inflation.</p>
 
+  <h2>Output, jobs, and damage that does not heal</h2>
+  <p>Bank Rate does not act on unemployment directly. It acts on <strong>output</strong> —
+    how much the economy is producing relative to what it could — and unemployment follows
+    from that, by the relationship Arthur Okun identified in 1962. Roughly: every 2% of
+    output lost costs a percentage point of employment.</p>
+  <div class="box">
+    <p><code>gap = 0.84 × gap − 1.24 × squeeze − 0.32 × |shock tail| − 2.0 × demand shock</code></p>
+    <p><code>unemployment = natural rate − 0.5 × gap</code></p>
+  </div>
+  <p>The natural rate is where unemployment settles when output is at potential. It is not
+    a constant of nature and it is not the same in every era — it was near 3% in the
+    post-war decades and around 7.5% after the 1980s, which is why the historical scenarios
+    each carry their own.</p>
+
+  <h3>Scarring</h3>
+  <p>Here is the part that should change how you play. A slump deep enough and long enough
+    does <em>permanent</em> damage: skills go stale, people leave the workforce and do not
+    return, and firms that would have invested never do. The economy does not get that
+    capacity back when policy eases. Economists call it hysteresis.</p>
+  <div class="box">
+    <p><code>if gap &lt; −2%: scar += 0.02 × (|gap| − 2)</code> &nbsp;·&nbsp;
+      <code>natural rate = base + scar</code></p>
+  </div>
+  <p>The scar never decays. It means over-tightening is not a mistake you can simply undo
+    next quarter by cutting again — some of the cost is already banked, and it raises the
+    floor under unemployment for the rest of your term. It is the reason the growth line
+    under the two tiles is worth watching even though you are not scored on it directly.</p>
+  <p>This is not a theoretical flourish. It is the standard explanation for why UK output
+    never returned to its pre-2008 trend.</p>
+
   <h2>Everything arrives late</h2>
   <p>A rate change in the game affects the economy the <em>following</em> quarter, never the
     current one. This is the single most important thing about running monetary policy and
@@ -125,8 +155,9 @@
 
   <h2>What it deliberately leaves out</h2>
   <p>No fiscal policy, no exchange rate you can see, no quantitative easing, no housing
-    market, no banking system, no distinction between headline and core inflation, and a
-    single interest rate standing in for an entire yield curve. Real forecasting models run
+    market, no banking system, no distinction between headline and core inflation, no
+    productivity or population growth, and a single interest rate standing in for an
+    entire yield curve. Real forecasting models run
     to hundreds of equations and still miss. This one has about six, and the point of it is
     the trade-off, not the forecast.</p>
 

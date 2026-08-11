@@ -253,6 +253,19 @@
   .guide b{display:block;font-size:13px;margin-bottom:2px}
   .guide span span,.guide li>span:last-child{font-size:12px;color:var(--muted);line-height:1.4}
 
+  /* ---- Growth strip ---- */
+  /* Context, not a target: output is a consequence of the two numbers above it,
+     so it gets one slim row rather than a tile of its own. */
+  .growth{display:flex;gap:10px;align-items:center;justify-content:space-between;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:8px 12px;margin-bottom:10px;font-size:12.5px;font-weight:700;
+    font-variant-numeric:tabular-nums}
+  .growth .lbl{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;
+    color:var(--muted);display:block;margin-bottom:1px}
+  .growth .scar span{color:var(--bad)}
+  .growth .neg{color:var(--bad)}
+  .growth .scar{text-align:right}
+
   /* ---- Mode picker ---- */
   .modes{display:flex;gap:4px;margin:0 0 10px;padding:4px;background:var(--panel);
     border:1px solid var(--line);border-radius:14px}
@@ -416,6 +429,11 @@
       </div>
     </div>
 
+    <div class="growth" id="growth">
+      <span><b class="lbl">Growth</b><span id="gVal">1.5%</span> a year</span>
+      <span class="scar hide" id="scarBox"><b class="lbl">Lasting damage</b><span id="scarVal">0.0</span>pp</span>
+    </div>
+
     <div class="event" id="event" aria-live="polite" style="margin-bottom:10px">
       <span class="em" id="evEmoji">🏦</span>
       <span><span class="h" id="evTitle">Your first meeting</span>
@@ -570,6 +588,13 @@
   // the peg demands are different numbers, which is the whole 1992 problem.
   // null means "use the world rate", which is every case but that one.
   var PEG_RATE = null;
+  // Where unemployment settles with output at potential. Era-specific: the UK's
+  // was far higher in the early 1990s than it is today.
+  var NATURAL_BASE = 4.4;
+  // Scarring. Below a gap of this size nothing permanent happens; beyond it,
+  // potential is lost at this rate per quarter and never recovered.
+  var SCAR_THRESHOLD = 2.0, SCAR_RATE = 0.02;
+  var TREND_GROWTH = 1.5;                 // potential growth, % a year
   var MPC_BIAS = [-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75];
   var RATE_MAX = 15;                      // the Governor may go full Volcker
   var INFL_FLOOR = -5, INFL_CEIL = 25;    // UK CPI peaked at 24.2% in 1975
@@ -603,15 +628,15 @@
       // Nominal rates lived an era higher, so the modern bounds have to move with
       // them or a 12.5% Bank Rate reads as an eight-point squeeze from quarter one.
       globalBand: [9, 16], neutralBand: [8, 15],
+      natural: 2.9,       // post-war full employment; the NAIRU really was this low
       penaltyTail: 4,
       rateMax: 20,   // Minimum Lending Rate actually reached 15% in October 1976
       // quarter index (1-based, the quarter the shock lands) -> tier
       script: { 1:3, 2:2, 4:2, 6:1, 9:2, 13:1 },
       // what actually happened, for the comparison on the results screen
-      // Measured over eight runs per policy: doing nothing spirals past 20% and
-      // scores −358 to −302; steady early tightening lands −263 to −252 and firm
-      // −254 to −247. Par sits in the 39-point gap between riding it out and
-      // actually breaking the spiral.
+      // Measured: doing nothing spirals past 19% and scores about −352; steady
+      // early tightening lands −240 and firm −237. Par sits in the gap between
+      // riding it out and actually breaking the spiral.
       par: -270,
       real: { peak: 24.2, endInfl: 8.4, endUnemp: 5.7,
               line: "Inflation peaked at 24.2% in August 1975. It took until 1978 to get back to 8.4%, "
@@ -632,6 +657,7 @@
       // was a recession. The 10% was the peg's price, not the economy's.
       exp: 4.2, global: 5.60,
       globalBand: [4.0, 7.5], neutralBand: [3.5, 7.0],
+      natural: 7.5,       // the NAIRU after the 1980s was nothing like today's
       // World rates rose through the mid-90s — the 1994 Fed tightening cycle —
       // so neutral climbs from around 5% to around 6.5% across the term. A
       // constant neutral cannot fit both the 5.25% of 1993 and the 6.75% of
@@ -652,11 +678,12 @@
                             "Out of the mechanism after a day of 12% and an announced 15%. "
                             + "Rates are yours again — the pound will take the strain instead."] } },
       script: { 5:1, 9:1, 14:1 },     // a quiet term by design: the drama is the start
-      // Measured: holding 10% throughout scores −314 and ends in deflation with
-      // unemployment near 15%; a generic Taylor rule manages −199 to −227. The
-      // rate path the MPC actually ran scores −141, and reproduces the history
-      // closely — inflation dipping to 1.4% in 1993, then 2–3.5% to 1997.
-      par: -210,
+      // Measured: holding 10% throughout scores −332, pins unemployment at 18%
+      // and scars 4pp permanently. Steady manages −284, firm −263. The rate path
+      // the MPC actually ran scores −250 and tracks the history closely: CPI
+      // troughing at 1.4% in 1993 and ending at 2.7%, unemployment peaking at
+      // 10.1% and still 8.0% in 1997 (really 10.7% and 7.2%).
+      par: -270,
       real: { peak: 3.7, endInfl: 2.6, endUnemp: 7.2,
               line: "Sterling left the ERM on 16 September 1992 after a day in which Bank Rate was "
                   + "raised to 12% and a 15% rate was announced but never implemented. Freed of the "
@@ -676,16 +703,16 @@
       start: { rate:5.0, inflation:5.2, unemployment:5.7 },
       exp: 3.4, global: 4.0,
       globalBand: [0.25, 5.0], neutralBand: [0.1, 4.5],
+      natural: 5.2,
       globalBias: -0.16,             // the whole world cut, and stayed cut
       penaltyTail: 4,
       // The demand collapse, then the 2011 energy and VAT overshoot back above 5%.
       script: { 2:5, 3:4, 4:4, 11:2, 12:2, 14:1 },
-      // Measured: never cutting scores −319 and pins the deflation floor with
-      // unemployment near 15%. The real path — 5% to 0.5% in six months, then
-      // hold — scores −144 and is the best of everything tried, which is the
-      // lesson. Tightening into the slump, as the starting 5.2% CPI tempts you
-      // to, scores worse than doing nothing at all.
-      par: -190,
+      // Measured: never cutting scores −329, pins unemployment at 18% and scars
+      // 5pp permanently. Steady manages −283, firm −232. The real path — 5% to
+      // 0.5% in six months, then hold — scores −177 and is the best of anything
+      // tried, which is the lesson.
+      par: -250,
       real: { peak: 5.2, endInfl: 2.9, endUnemp: 7.8,
               line: "Bank Rate went from 5% to 0.5% in six months and stayed there for seven years. "
                   + "Inflation fell to 1.1% by September 2009, then climbed back to 5.2% in 2011 on "
@@ -702,6 +729,7 @@
     exp: 2.3, global: 3.25,
     globalBand: [1.5, 4.75], neutralBand: [0.75, 4.5],
     penaltyTail: 0, rateMax: 15, importClamp: 0.5,
+    natural: 4.4,
     startYear: 2026, startQ: 3
   };
 
@@ -725,6 +753,7 @@
     RATE_MAX     = m.rateMax     || MODERN.rateMax;
     IMPORT_CLAMP = m.importClamp || MODERN.importClamp;
     PEG_RATE     = (m.pegRate === undefined) ? null : m.pegRate;
+    NATURAL_BASE = m.natural || MODERN.natural;
     NO_SHOCKS    = false;
     rebuildQNames(m.startYear || MODERN.startYear, m.startQ || MODERN.startQ);
   }
@@ -742,6 +771,10 @@
     // standing start and whatever happens next is the player's doing. Neutral
     // stays hidden, as always — that is the game.
     GLOBAL_RATE  = rate - NEUTRAL_LEAD;
+    // Same standing-start logic for jobs: the economy you chose is the economy at
+    // potential, so it opens with no output gap and nothing scarring. Any gap
+    // from here is yours.
+    NATURAL_BASE = unemp;
     GLOBAL_BAND  = [Math.max(0, GLOBAL_RATE - 4), GLOBAL_RATE + 4];
     NEUTRAL_BAND = [Math.max(0, GLOBAL_RATE + NEUTRAL_LEAD - 4), GLOBAL_RATE + NEUTRAL_LEAD + 4];
     RATE_MAX = 20;
@@ -939,6 +972,9 @@
       infl:START.inflation, unemp:START.unemployment,
       prevInfl:START.inflation, prevUnemp:START.unemployment,
       exp:START_EXP,
+      // Output gap and accumulated scarring. The gap is seeded from the starting
+      // unemployment so the two agree from quarter one.
+      ogap: 2*(NATURAL_BASE - START.unemployment), scar: 0,
       global:GLOBAL_RATE, globalDrift:0,
       // A scenario is meant to be the same history for everyone, so it does not
       // also roll a hidden drift direction the way the modern game does.
@@ -952,7 +988,8 @@
       shocksHit:0, majorHits:0, crisisHits:0,
       shockCarry:0, dissents:0, peakInfl:START.inflation, crisisName:"",
       minInfl:START.inflation, maxRate:START.rate, bandHits:0,
-      hist:[{i:START.inflation,u:START.unemployment,tier:0,emoji:"",rate:START.rate,neutral:GLOBAL_RATE+NEUTRAL_LEAD}],
+      hist:[{i:START.inflation,u:START.unemployment,tier:0,emoji:"",rate:START.rate,
+             neutral:GLOBAL_RATE+NEUTRAL_LEAD,o:2*(NATURAL_BASE-START.unemployment)}],
       dots:[], over:false
     };
   }
@@ -965,6 +1002,9 @@
   function pct(v){ return v.toFixed(2).replace(/\.?0+$/,'') + "%"; }
   function f1(v){ return v.toFixed(1)+"%"; }
   function neutralRate(){ return clamp(S.global + NEUTRAL_LEAD, NEUTRAL_BAND[0], NEUTRAL_BAND[1]); }
+  // The rate of unemployment the economy settles at when output is at potential.
+  // It rises with accumulated scarring and never comes back down.
+  function natural(){ return NATURAL_BASE + S.scar; }
 
   // ---------- The Committee ----------
   // Hidden from the player, the committee prices off the true neutral rate, so
@@ -1050,20 +1090,34 @@
     // break rather than one heroic meeting.
     var squeeze = Math.tanh(gap / 4);
     S.infl  = S.infl  + (-2.00*squeeze) - 0.30*(S.infl - S.exp) + shock + carry + importPush + noise;
-    // Jobs are hurt by the *size* of a shock's tail, not its direction — a demand
-    // collapse carries a negative inflation tail but still costs employment.
-    S.unemp = S.unemp + ( 0.62*squeeze) - 0.16*(S.unemp - 4.4) + 0.16*Math.abs(carry) + dU;
+
+    // Policy acts on *output* first, and unemployment follows it by Okun's law —
+    // which is what was really going on before, with the output gap collapsed
+    // into the jobs coefficient. Jobs are hurt by the size of a shock's tail,
+    // not its direction: a demand collapse carries a negative inflation tail but
+    // still destroys output.
+    S.ogap = 0.84*S.ogap - 1.24*squeeze - 0.32*Math.abs(carry) - 2.0*dU;
 
     // Deflation trap: falling prices raise real debts and postpone spending, so
     // demand and jobs deteriorate and the fall feeds on itself.
     if (S.infl < 0){
       var d = -S.infl;
-      S.unemp += 0.22 * d;
-      S.infl  -= 0.06 * d;
+      S.ogap -= 0.44 * d;
+      S.infl -= 0.06 * d;
     }
 
+    // Scarring: a deep, sustained slump does permanent damage. Skills go stale,
+    // people leave the workforce, firms that would have invested do not, and the
+    // economy never gets that capacity back. This is the cost of over-tightening
+    // that the current quarter's numbers do not show you.
+    if (-S.ogap > SCAR_THRESHOLD) S.scar += SCAR_RATE * (-S.ogap - SCAR_THRESHOLD);
+
     S.infl  = clamp(S.infl,  INFL_FLOOR, INFL_CEIL);
-    S.unemp = clamp(S.unemp, UNEMP_FLOOR, UNEMP_CEIL);
+    // Clamp the gap at the bounds that keep unemployment inside its own floor and
+    // ceiling, so the limits behave exactly as they did when unemployment was the
+    // state variable.
+    S.ogap  = clamp(S.ogap, 2*(natural() - UNEMP_CEIL), 2*(natural() - UNEMP_FLOOR));
+    S.unemp = natural() - 0.5*S.ogap;
     if (S.infl > S.peakInfl) S.peakInfl = S.infl;
     if (S.infl < S.minInfl) S.minInfl = S.infl;
     if (decided > S.maxRate) S.maxRate = decided;
@@ -1106,7 +1160,7 @@
     if (!S.crisisFired && S.infl >= CRISIS_CPI) { S.crisisFired = true; S.crisisPenalty = 8; S.score -= 8; }
 
     S.dots.push(ok ? "hit" : "miss");
-    S.hist.push({i:S.infl, u:S.unemp, tier:tier, emoji:tier?ev[0]:"", rate:S.lagged, neutral:neutralRate()});
+    S.hist.push({i:S.infl, u:S.unemp, tier:tier, emoji:tier?ev[0]:"", rate:S.lagged, neutral:neutralRate(), o:S.ogap});
     return { ev:ev, tier:tier, ok:ok, delta:Math.round(S.score - before) };
   }
 
@@ -1318,6 +1372,16 @@
 
     $("iVal").textContent = S.infl.toFixed(1);
     $("uVal").textContent = S.unemp.toFixed(1);
+
+    // Growth, year on year: trend potential growth plus however much the output
+    // gap has closed or opened over the last four quarters. Quarterly would be
+    // too noisy to read anything into.
+    var h = S.hist, t = h.length - 1, k = Math.min(t, 4);
+    var g = TREND_GROWTH + (k ? (h[t].o - h[t-k].o) * (4/k) : 0);
+    $("gVal").textContent = (g >= 0 ? "+" : "") + g.toFixed(1) + "%";
+    $("gVal").className = g < 0 ? "neg" : "";
+    $("scarVal").textContent = S.scar.toFixed(1);
+    $("scarBox").classList.toggle("hide", S.scar < 0.05);
     arrow("iArr", S.infl, S.prevInfl);
     arrow("uArr", S.unemp, S.prevUnemp);
     var iWasOut = $("tileI").classList.contains("out"), uWasOut = $("tileU").classList.contains("out");
@@ -1396,6 +1460,10 @@
       if (p.u > UNEMP_BAND.hi){ breaches++; if (p.rate >= p.neutral + 1.0) coldTight++; }
       if (p.i < 0) deflation++;
     }
+    if (S.scar >= 0.5) return ["You left scars",
+      "The slump ran so deep and so long that " + S.scar.toFixed(1) + "pp of it never came back — "
+      + "skills go stale, people leave the workforce, and the jobless floor rises permanently. "
+      + "Output lost this way is not recovered by easing later."];
     if (deflation >= 3) return ["Fell into deflation",
       "Below zero, prices dragged demand and jobs down with them. Cut earlier and harder when inflation heads under 1%."];
     if (hotSlow >= 5) return ["Too slow to react",
@@ -1431,6 +1499,8 @@
       ["Getting inflation back down", S.fightPoints ? "+" + S.fightPoints : "0", S.fightPoints ? true : null],
       ["Shocks weathered", S.shocksHit + (S.crisisHits ? " · " + S.crisisHits + " crisis" : ""), null]
     ];
+    if (S.scar >= 0.05)
+      lines.push(["Lasting damage to the jobless floor", "+" + S.scar.toFixed(1) + "pp", false]);
     if (S.dissents) lines.push(["Meetings with the Committee split", String(S.dissents) + "×", null]);
     lines.push([S.crisisHits ? "Par for a term this rough" : "Par for the term", String(Math.round(par)), null]);
     if (S.crisisPenalty) lines.push(["Credibility crisis", "−8", false]);
