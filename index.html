@@ -253,18 +253,16 @@
   .guide b{display:block;font-size:13px;margin-bottom:2px}
   .guide span span,.guide li>span:last-child{font-size:12px;color:var(--muted);line-height:1.4}
 
-  /* ---- Growth strip ---- */
-  /* Context, not a target: output is a consequence of the two numbers above it,
-     so it gets one slim row rather than a tile of its own. */
-  .growth{display:flex;gap:10px;align-items:center;justify-content:space-between;
-    background:var(--panel);border:1px solid var(--line);border-radius:12px;
-    padding:8px 12px;margin-bottom:10px;font-size:12.5px;font-weight:700;
-    font-variant-numeric:tabular-nums}
-  .growth .lbl{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;
-    color:var(--muted);display:block;margin-bottom:1px}
-  .growth .scar span{color:var(--bad)}
-  .growth .neg{color:var(--bad)}
-  .growth .scar{text-align:right}
+  /* ---- Growth tile ---- */
+  /* Spans both columns: growth is a consequence rather than a target, so it sits
+     below the two scored tiles — but it gets the same graph, at the same height,
+     because a single number cannot show the shape of a slump. */
+  .tile.wide{grid-column:1 / -1}
+  .tile.wide .big{font-size:30px;margin-bottom:0}
+  .tile.wide .big em{font-size:14px}
+  .tile.wide .lbl .scar{margin-left:auto;letter-spacing:.6px;color:var(--bad);text-transform:none}
+  .tile.wide .lbl .scar b{font-size:11px}
+  #gVal.neg{color:var(--bad)} #gVal.pos{color:var(--good)}
 
   /* ---- Mode picker ---- */
   .modes{display:flex;gap:4px;margin:0 0 10px;padding:4px;background:var(--panel);
@@ -427,11 +425,13 @@
         <div class="strip"><span class="zone" id="uZone"></span><span class="mk" id="uMk"></span></div>
         <div class="tgt">Goal 3–5%</div>
       </div>
-    </div>
-
-    <div class="growth" id="growth">
-      <span><b class="lbl">Growth</b><span id="gVal">1.5%</span> a year</span>
-      <span class="scar hide" id="scarBox"><b class="lbl">Lasting damage</b><span id="scarVal">0.0</span>pp</span>
+      <div class="tile wide" id="tileG">
+        <div class="lbl"><span class="swatch" id="gSwatch" style="background:var(--good)"></span> Growth
+          <span class="scar hide" id="scarBox">Lasting damage <b id="scarVal">0.0</b>pp</span></div>
+        <div class="big"><span id="gVal">+1.5</span><em>% a year</em></div>
+        <canvas class="spark" id="sparkG"></canvas>
+        <div class="tgt">Not scored — but it is what the other two are made of</div>
+      </div>
     </div>
 
     <div class="event" id="event" aria-live="polite" style="margin-bottom:10px">
@@ -1234,6 +1234,67 @@
     ctx.fillStyle = colour; ctx.fill();
   }
 
+  // Growth per quarter, year on year: trend potential growth plus however much
+  // the output gap has closed or opened over the last four quarters. Quarterly
+  // would be too noisy to read anything into.
+  function growthAt(t){
+    var k = Math.min(t, 4);
+    return TREND_GROWTH + (k ? (S.hist[t].o - S.hist[t-k].o) * (4/k) : 0);
+  }
+
+  // Sibling to spark(). It cannot share that function: spark() is built around a
+  // target band, and growth has no band — it has a zero line, with everything
+  // above it good and everything below it bad.
+  function sparkGrowth(id){
+    var d = fit($(id)); if (!d) return;
+    var ctx = d.ctx, w = d.w, h = d.h;
+    var GOOD = "#3DDC97", BAD = "#FF5D5D";
+
+    var vals = S.hist.map(function(_,i){ return growthAt(i); });
+    var hi = 4, lo = -4;                       // comfortable default, stretched by a real slump
+    vals.forEach(function(v){ if (v > hi) hi = Math.ceil(v)+1; if (v < lo) lo = Math.floor(v)-1; });
+    var Y = function(v){ return h - ((clamp(v,lo,hi)-lo)/(hi-lo))*h; };
+    var X = function(i){ return (i/QUARTERS) * w; };
+    var zero = Y(0);
+
+    var pts = vals.map(function(v,i){ return { x:X(i), y:Y(v), v:v }; });
+    var last = pts[pts.length-1];
+
+    // Fill and stroke drawn twice, clipped above and below the zero line, so the
+    // colour switches exactly where growth turns negative rather than per point.
+    [[0, zero, GOOD], [zero, h, BAD]].forEach(function(part){
+      var top = part[0], bot = part[1], col = part[2];
+      if (bot - top < 0.5) return;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, top, w, bot - top); ctx.clip();
+
+      if (pts.length > 1){
+        var g = ctx.createLinearGradient(0, col === GOOD ? 0 : zero, 0, col === GOOD ? zero : h);
+        g.addColorStop(0, col + "44"); g.addColorStop(1, col + "00");
+        ctx.beginPath(); ctx.moveTo(pts[0].x, zero);
+        pts.forEach(function(p){ ctx.lineTo(p.x, p.y); });
+        ctx.lineTo(last.x, zero); ctx.closePath();
+        ctx.fillStyle = g; ctx.fill();
+      }
+
+      ctx.beginPath();
+      pts.forEach(function(p,i){ i ? ctx.lineTo(p.x,p.y) : ctx.moveTo(p.x,p.y); });
+      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.lineCap = "round";
+      ctx.stroke();
+      ctx.restore();
+    });
+
+    // the zero line last, so it reads on top of the fill
+    ctx.beginPath(); ctx.moveTo(0, zero); ctx.lineTo(w, zero);
+    ctx.strokeStyle = "rgba(255,255,255,.20)"; ctx.lineWidth = 1; ctx.stroke();
+
+    var lc = last.v < 0 ? BAD : GOOD;
+    ctx.beginPath(); ctx.arc(last.x, last.y, 6, 0, Math.PI*2);
+    ctx.fillStyle = lc + "33"; ctx.fill();
+    ctx.beginPath(); ctx.arc(last.x, last.y, 3, 0, Math.PI*2);
+    ctx.fillStyle = lc; ctx.fill();
+  }
+
   // ---------- Term story chart (results) ----------
   var storyAnim = null;
   function drawStory(upto){
@@ -1373,13 +1434,10 @@
     $("iVal").textContent = S.infl.toFixed(1);
     $("uVal").textContent = S.unemp.toFixed(1);
 
-    // Growth, year on year: trend potential growth plus however much the output
-    // gap has closed or opened over the last four quarters. Quarterly would be
-    // too noisy to read anything into.
-    var h = S.hist, t = h.length - 1, k = Math.min(t, 4);
-    var g = TREND_GROWTH + (k ? (h[t].o - h[t-k].o) * (4/k) : 0);
-    $("gVal").textContent = (g >= 0 ? "+" : "") + g.toFixed(1) + "%";
-    $("gVal").className = g < 0 ? "neg" : "";
+    var g = growthAt(S.hist.length - 1);
+    $("gVal").textContent = (g >= 0 ? "+" : "") + g.toFixed(1);
+    $("gVal").className = g < 0 ? "neg" : "pos";
+    $("gSwatch").style.background = g < 0 ? "var(--bad)" : "var(--good)";
     $("scarVal").textContent = S.scar.toFixed(1);
     $("scarBox").classList.toggle("hide", S.scar < 0.05);
     arrow("iArr", S.infl, S.prevInfl);
@@ -1395,6 +1453,7 @@
     strip("uZone","uMk", S.unemp, UNEMP_BAND, su.lo, su.hi);
     spark("sparkI","i","#4CC9F0",si.lo,si.hi,INFL_BAND);
     spark("sparkU","u","#FFA45B",su.lo,su.hi,UNEMP_BAND);
+    sparkGrowth("sparkG");
 
     var h = "";
     for (var i=0;i<QUARTERS;i++) h += '<span class="dot '+(S.dots[i] || (i===S.q?"now":""))+'"></span>';
