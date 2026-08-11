@@ -168,6 +168,30 @@
     color:#fff;text-wrap:balance}
   .alert p{margin:0;font-size:14px;line-height:1.5;color:#FFC9C2}
   .tapon{margin-top:22px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#8A97AE}
+  /* The letter asks you to choose, so this variant must not dismiss on tap */
+  .alert.choose{cursor:default}
+  .choices{display:flex;flex-direction:column;gap:8px;margin-top:20px;text-align:left}
+  .choices button{padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.22);
+    background:rgba(255,255,255,.06);color:#fff;font-family:inherit;font-size:13.5px;
+    font-weight:800;cursor:pointer;text-align:left;line-height:1.35}
+  .choices button:active{transform:scale(.985)}
+  .choices button span{display:block;font-size:11.5px;font-weight:600;color:#FFC9C2;margin-top:3px}
+
+  /* ---- Asset purchases and guidance ---- */
+  .qe{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+  .qe .v{color:var(--good)}
+  .grow{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;
+    border-top:1px solid var(--line)}
+  .grow .l{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.1px;
+    color:var(--muted);flex:0 0 auto}
+  .gseg{display:flex;gap:3px;flex:1 1 auto;min-width:0;padding:3px;background:var(--raised);
+    border:1px solid var(--line);border-radius:11px}
+  .gseg button{flex:1 1 0;min-width:0;padding:8px 2px;border:0;border-radius:8px;
+    background:transparent;color:var(--muted);font-family:inherit;font-size:11px;
+    font-weight:800;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gseg button[aria-pressed=true]{background:var(--infl);color:#08111F}
+  .gseg button:disabled{opacity:.35;cursor:default}
+  .grow.locked .gseg{opacity:.55}
   .app.quake{animation:quake .45s cubic-bezier(.36,.07,.19,.97)}
   @keyframes quake{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(4px,-2px)}
     30%,50%,70%{transform:translate(-6px,2px)}40%,60%{transform:translate(6px,-1px)}}
@@ -461,6 +485,29 @@
         <button class="step" id="up" aria-label="Raise by 0.25">+</button>
       </div>
       <div class="hint" id="hint">Holding at 3.75%</div>
+
+      <!-- Asset purchases: only appears once Bank Rate has run out of room -->
+      <div class="qe hide" id="qeRow">
+        <div class="rateline"><span class="l">Asset purchases</span><span class="v" id="qeVal">£0bn</span></div>
+        <div class="row">
+          <button class="step" id="qeDown" aria-label="Buy less, or sell">−</button>
+          <input type="range" id="qeBuy" min="-25" max="75" step="25" value="0" aria-label="Asset purchases this quarter">
+          <button class="step" id="qeUp" aria-label="Buy more">+</button>
+        </div>
+        <div class="hint" id="qeHint">Effective rate 0.50%</div>
+      </div>
+
+      <div class="grow" id="guideRow">
+        <span class="l">Guidance</span>
+        <div class="gseg" id="gseg">
+          <button data-g="none" aria-pressed="true">None</button>
+          <button data-g="hold" aria-pressed="false">Hold</button>
+          <button data-g="cut" aria-pressed="false">Cut</button>
+          <button data-g="raise" aria-pressed="false">Raise</button>
+        </div>
+      </div>
+      <div class="hint" id="guideHint">No guidance given. Your word costs nothing, and buys nothing.</div>
+
       <button class="go" id="go">SET RATE &amp; ADVANCE</button>
     </div>
   </div>
@@ -495,7 +542,8 @@
       <div class="ae" id="alertEmoji">💥</div>
       <h2 id="alertTitle">WAR IN THE GULF</h2>
       <p id="alertText"></p>
-      <div class="tapon">Tap to continue</div>
+      <div class="choices hide" id="alertChoices"></div>
+      <div class="tapon" id="alertTap">Tap to continue</div>
     </div>
   </div>
 
@@ -596,6 +644,20 @@
   // potential is lost at this rate per quarter and never recovered.
   var SCAR_THRESHOLD = 2.0, SCAR_RATE = 0.02;
   var TREND_GROWTH = 1.5;                 // potential growth, % a year
+  // Asset purchases. QE is expressed as a shadow rate: a stock of gilts is
+  // worth so many points off the effective policy stance, with diminishing
+  // returns, which is how economists actually describe it. £50bn is worth
+  // about 0.6pp, £200bn about 1.6pp — in the region of published estimates.
+  var QE_UNLOCK = 1.0;                    // Bank Rate at or below this and buying is available
+  var QE_BUY_MAX = 75, QE_SELL_MAX = 25;  // £bn a quarter. Buying is fast, unwinding is not.
+  var QE_SCALE = 0.75, QE_HALF = 120;      // £200bn ~ 0.74pp, £400bn ~ 1.1pp
+  // QE is not simply a rate cut by another name. It works mainly through
+  // portfolio balance — supporting asset prices and lending, so output and jobs
+  // — and the evidence for its effect on prices is weaker and far less certain.
+  // So the inflation side of the model sees only a fraction of the stance the
+  // output side does. That asymmetry is the whole reason to have a second lever
+  // rather than a differently-labelled first one.
+  var QE_INFL_WEIGHT = 0.35;
   var MPC_BIAS = [-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75];
   var RATE_MAX = 15;                      // the Governor may go full Volcker
   var INFL_FLOOR = -5, INFL_CEIL = 25;    // UK CPI peaked at 24.2% in 1975
@@ -977,13 +1039,20 @@
       // unemployment so the two agree from quarter one.
       ogap: 2*(NATURAL_BASE - START.unemployment), scar: 0,
       global:GLOBAL_RATE, globalDrift:0,
-      // A scenario is meant to be the same history for everyone, so it does not
-      // also roll a hidden drift direction the way the modern game does.
       // A scenario plays the same history for everyone, so it does not roll a
       // hidden drift direction — but it may state one, where world rates
       // demonstrably moved one way through the term.
       globalBias: SCEN ? (SCEN.globalBias || 0)
                        : [-0.075,-0.04,0,0.04,0.075][(Math.random()*5)|0],
+      // Credibility: how readily the public believes the target when you are
+      // hitting it. Earned by keeping guidance, spent in the letter. At 1.0 it
+      // scales nothing, which is the state a player who ignores both stays in.
+      cred: 1.0,
+      // Asset purchases, in £bn, lagged a quarter like the rate.
+      qe: 0, qeLagged: 0, qePeak: 0,
+      guide: null,          // { dir, until, rateAt }
+      guideKept: 0, guideBroken: 0,
+      pledgeUntil: 0, pledgeFailed: false, letterChoice: null,
       score:0, bandPoints:0, missPoints:0, fightPoints:0, streak:0, bestStreak:0,
       crisisFired:false, crisisPenalty:0,
       shocksHit:0, majorHits:0, crisisHits:0,
@@ -1003,6 +1072,11 @@
   function pct(v){ return v.toFixed(2).replace(/\.?0+$/,'') + "%"; }
   function f1(v){ return v.toFixed(1)+"%"; }
   function neutralRate(){ return clamp(S.global + NEUTRAL_LEAD, NEUTRAL_BAND[0], NEUTRAL_BAND[1]); }
+  // What a stock of asset purchases is worth in rate terms. The stance the
+  // economy actually responds to is Bank Rate minus this.
+  function qeCut(stock){ return stock > 0 ? QE_SCALE * Math.log(1 + stock/QE_HALF) : 0; }
+  function effectiveRate(rate, stock){ return rate - qeCut(stock); }
+
   // The rate of unemployment the economy settles at when output is at potential.
   // It rises with accumulated scarring and never comes back down.
   function natural(){ return NATURAL_BASE + S.scar; }
@@ -1030,7 +1104,12 @@
 
   // ---------- Economy ----------
   function step(decided){
-    var gap = S.lagged - neutralRate();
+    // Policy transmits through the effective stance, not the headline rate:
+    // at the zero bound the headline stops moving and the balance sheet is
+    // the only lever left. Output feels the whole of it; prices feel only part.
+    var qeStance = qeCut(S.qeLagged);
+    var gap  = (S.lagged - qeStance) - neutralRate();
+    var gapI = (S.lagged - QE_INFL_WEIGHT * qeStance) - neutralRate();
     S.prevInfl = S.infl; S.prevUnemp = S.unemp;
 
     // World rates wander, dragging the UK neutral rate with them (hidden).
@@ -1089,8 +1168,9 @@
     // Policy bites with diminishing returns: a punitive rate is powerful but
     // cannot collapse prices in a single quarter, so a spiral takes years to
     // break rather than one heroic meeting.
-    var squeeze = Math.tanh(gap / 4);
-    S.infl  = S.infl  + (-2.00*squeeze) - 0.30*(S.infl - S.exp) + shock + carry + importPush + noise;
+    var squeeze = Math.tanh(gap / 4);          // what output responds to
+    var squeezeI = Math.tanh(gapI / 4);        // what prices respond to
+    S.infl  = S.infl  + (-2.00*squeezeI) - 0.30*(S.infl - S.exp) + shock + carry + importPush + noise;
 
     // Policy acts on *output* first, and unemployment follows it by Okun's law —
     // which is what was really going on before, with the output gap collapsed
@@ -1127,7 +1207,10 @@
     // believing the target and starts pricing off what they actually see.
     var chase = 0.10 + 0.16 * clamp((S.infl - 5) / 10, 0, 1);
     S.exp += chase * (S.infl - S.exp);
-    if (inBand(S.infl, INFL_BAND)) S.exp += 0.20*(2.0 - S.exp);
+    // Credibility scales how fast the target re-anchors expectations. A Governor
+    // whose word has been good gets believed sooner; one who has broken guidance
+    // has to prove it with outcomes instead.
+    if (inBand(S.infl, INFL_BAND)) S.exp += 0.20 * S.cred * (2.0 - S.exp);
     S.exp = clamp(S.exp, -2, 18);
 
     // A crisis leaves a tail measured in years, not quarters.
@@ -1137,6 +1220,7 @@
     if (Math.abs(S.shockCarry) < 0.03) S.shockCarry = 0;
 
     S.lagged = decided;
+    S.qeLagged = S.qe;
     S.q++;
 
     var before = S.score;
@@ -1441,6 +1525,7 @@
     $("gSwatch").style.background = g < 0 ? "var(--bad)" : "var(--good)";
     $("scarVal").textContent = S.scar.toFixed(1);
     $("scarBox").classList.toggle("hide", S.scar < 0.05);
+    paintQE(); paintGuide();
     arrow("iArr", S.infl, S.prevInfl);
     arrow("uArr", S.unemp, S.prevUnemp);
     var iWasOut = $("tileI").classList.contains("out"), uWasOut = $("tileU").classList.contains("out");
@@ -1561,6 +1646,13 @@
     ];
     if (S.scar >= 0.05)
       lines.push(["Lasting damage to the jobless floor", "+" + S.scar.toFixed(1) + "pp", false]);
+    if (S.qePeak > 0)
+      lines.push(["Peak balance sheet", "£" + Math.round(S.qePeak) + "bn", null]);
+    if (S.guideKept || S.guideBroken)
+      lines.push(["Guidance kept", S.guideKept + " of " + (S.guideKept + S.guideBroken),
+                  S.guideBroken === 0]);
+    if (S.letterChoice === "pledged")
+      lines.push(["Pledge to the Chancellor", S.pledgeFailed ? "broken" : "honoured", !S.pledgeFailed]);
     if (S.dissents) lines.push(["Meetings with the Committee split", String(S.dissents) + "×", null]);
     lines.push([S.crisisHits ? "Par for a term this rough" : "Par for the term", String(Math.round(par)), null]);
     if (S.crisisPenalty) lines.push(["Credibility crisis", "−8", false]);
@@ -1781,7 +1873,7 @@
     if (crisisNow){
       $("evEmoji").textContent = "🚨";
       $("evTitle").textContent = "Letter to the Chancellor";
-      $("evText").textContent = "Inflation above 3.5%. The Governor must explain himself in writing. −8 points.";
+      $("evText").textContent = "Inflation above 3.5%. An open letter to the Chancellor is required. −8 points.";
       el.className = "event bad shake";
     } else {
       $("evEmoji").textContent = ev[0];
@@ -1794,9 +1886,47 @@
 
   // A 1974-scale event should stop the game dead for a beat.
   var alertTimer = null;
+  // Set when a letter is waiting behind a news flash.
+  var pendingLetter = null;
   function closeAlert(){
     if (alertTimer){ clearTimeout(alertTimer); alertTimer = null; }
     $("alert").classList.add("hide");
+    $("alert").classList.remove("choose");
+    $("alertChoices").classList.add("hide");
+    $("alertTap").classList.remove("hide");
+    if (pendingLetter !== null){
+      var had = pendingLetter; pendingLetter = null;
+      // Shown straight away rather than on a timer: it is a choice dialog, so it
+      // ignores the background tap that dismissed the news flash.
+      letterToChancellor(had);
+    }
+  }
+
+  // A variant that waits for an answer instead of dismissing itself. Used for
+  // the letter to the Chancellor, which is a decision rather than a news flash.
+  function choiceAlert(emoji, title, text, ribbon, options){
+    closeAlert();
+    $("alertEmoji").textContent = emoji;
+    $("alertTitle").textContent = title;
+    $("alertText").textContent = text;
+    $("alertRibbon").textContent = ribbon;
+    var box = $("alertChoices");
+    box.innerHTML = "";
+    options.forEach(function(o){
+      var b = document.createElement("button");
+      b.innerHTML = o.label + "<span>" + o.note + "</span>";
+      b.addEventListener("click", function(e){
+        e.stopPropagation();
+        closeAlert();
+        o.pick();
+        render();
+      });
+      box.appendChild(b);
+    });
+    box.classList.remove("hide");
+    $("alertTap").classList.add("hide");
+    $("alert").classList.add("choose");
+    $("alert").classList.remove("hide");
   }
   function bigAlert(emoji, title, text, ribbon){
     closeAlert();
@@ -1819,7 +1949,129 @@
     document.body.appendChild(v);
     setTimeout(function(){ v.remove(); }, 600);
   }
-  $("alert").addEventListener("click", closeAlert);
+  $("alert").addEventListener("click", function(){
+    if (!$("alert").classList.contains("choose")) closeAlert();
+  });
+
+  // ---------- The letter to the Chancellor ----------
+  // Inflation more than a point off target and the Governor must write to the
+  // Chancellor explaining why, what is being done, and how long it will take.
+  // The −8 has already been charged in step(); what you choose here is what the
+  // letter actually says, and each answer costs something different.
+  function letterToChancellor(hadShock){
+    var opts = [];
+    if (hadShock) opts.push({
+      label: "Point to the shock",
+      note: "Half the penalty back. But a Governor who blames the weather is believed less next time.",
+      pick: function(){
+        S.score += 4; S.crisisPenalty = 4;
+        S.cred = Math.max(0.6, S.cred - 0.15);
+        S.letterChoice = "blamed";
+      }
+    });
+    opts.push({
+      label: "Pledge to bring it back to target",
+      note: "Expectations settle now — but it binds you. Still above 3% in four quarters and it costs you dearly.",
+      pick: function(){
+        S.exp += 0.25 * (2.0 - S.exp);
+        S.pledgeUntil = S.q + 4;
+        S.letterChoice = "pledged";
+      }
+    });
+    opts.push({
+      label: "Own it and say nothing more",
+      note: "The full −8, and no strings. Sometimes the cheapest answer is the quiet one.",
+      pick: function(){ S.letterChoice = "owned"; }
+    });
+    choiceAlert("🚨", "LETTER TO THE CHANCELLOR",
+      "Inflation is more than a point above target. You must explain, in writing, "
+      + "what went wrong and what you intend to do about it.", "CREDIBILITY", opts);
+  }
+
+  // ---------- Asset purchases ----------
+  var qeBuy = $("qeBuy");
+  function qeUnlocked(){ return S.rate <= QE_UNLOCK || S.qe > 0; }
+  function paintQE(){
+    var on = qeUnlocked();
+    $("qeRow").classList.toggle("hide", !on);
+    if (!on) return;
+    // You cannot sell what you do not hold, and unwinding is capped.
+    qeBuy.min = String(-Math.min(QE_SELL_MAX, Math.round(S.qe/25)*25));
+    var planned = clamp(+qeBuy.value, +qeBuy.min, QE_BUY_MAX);
+    qeBuy.value = String(planned);
+    $("qeVal").textContent = "£" + Math.round(S.qe) + "bn"
+      + (planned ? (planned > 0 ? "  +" : "  ") + planned : "");
+    var eff = effectiveRate(S.rate, S.qe);
+    $("qeHint").textContent = "Effective rate " + eff.toFixed(2) + "%"
+      + (S.qe ? " — " + qeCut(S.qe).toFixed(2) + "pp of it from the balance sheet" : "")
+      + (planned < 0 ? ". Unwinding is capped at £25bn a quarter." : "");
+  }
+  qeBuy.addEventListener("input", function(){ paintQE(); SFX.tick && SFX.tick(); });
+  $("qeUp").addEventListener("click", function(){
+    qeBuy.value = String(Math.min(QE_BUY_MAX, +qeBuy.value + 25)); paintQE(); SFX.pop();
+  });
+  $("qeDown").addEventListener("click", function(){
+    qeBuy.value = String(Math.max(+qeBuy.min, +qeBuy.value - 25)); paintQE(); SFX.pop();
+  });
+
+  // ---------- Forward guidance ----------
+  var GUIDE_TEXT = {
+    hold:  "You have said Bank Rate will hold near " ,
+    cut:   "You have said Bank Rate will not rise above ",
+    raise: "You have said Bank Rate will not fall below "
+  };
+  function paintGuide(){
+    var active = !!S.guide;
+    $("guideRow").classList.toggle("locked", active);
+    Array.prototype.forEach.call($("gseg").children, function(b){
+      b.disabled = active;
+      b.setAttribute("aria-pressed", String(active ? b.dataset.g === S.guide.dir
+                                                   : b.dataset.g === "none"));
+    });
+    if (active){
+      var left = S.guide.until - S.q;
+      $("guideHint").textContent = GUIDE_TEXT[S.guide.dir] + pct(S.guide.rateAt)
+        + " for " + left + (left === 1 ? " more quarter." : " more quarters.")
+        + " Break it and they stop believing you.";
+    } else if (S.cred > 1.05){
+      $("guideHint").textContent = "Your word has been good. The target is believed sooner when you hit it.";
+    } else if (S.cred < 0.95){
+      $("guideHint").textContent = "You broke your guidance. Expectations will take longer to settle.";
+    } else {
+      $("guideHint").textContent = "No guidance given. Your word costs nothing, and buys nothing.";
+    }
+  }
+  $("gseg").addEventListener("click", function(e){
+    var b = e.target.closest("button[data-g]");
+    if (!b || b.disabled || S.guide) return;
+    if (b.dataset.g !== "none"){
+      S.guide = { dir: b.dataset.g, until: S.q + 4, rateAt: S.rate };
+      SFX.pop();
+    }
+    paintGuide();
+  });
+
+  // Judged after the decision lands: did this quarter's rate honour the promise?
+  function checkGuide(decided){
+    if (!S.guide) return null;
+    var g = S.guide, ok;
+    if (g.dir === "hold")       ok = Math.abs(decided - g.rateAt) <= 0.25;
+    else if (g.dir === "cut")   ok = decided <= g.rateAt + 0.001;
+    else                        ok = decided >= g.rateAt - 0.001;
+    if (!ok){
+      S.guide = null; S.guideBroken++;
+      S.cred = Math.max(0.6, S.cred - 0.4);
+      S.score -= 6;
+      return "broken";
+    }
+    if (S.q >= g.until){
+      S.guide = null; S.guideKept++;
+      S.cred = Math.min(1.4, S.cred + 0.2);
+      S.score += 6;
+      return "kept";
+    }
+    return null;
+  }
 
   $("go").addEventListener("click", function(){
     if (S.over) return;
@@ -1828,7 +2080,27 @@
     var v = mpcVote(proposal);
     if (v.against >= 4) S.dissents++;
 
+    // Asset purchases are decided alongside the rate and transmit on the same lag.
+    if (qeUnlocked()){
+      S.qe = Math.max(0, S.qe + clamp(+qeBuy.value, -QE_SELL_MAX, QE_BUY_MAX));
+      if (S.qe > S.qePeak) S.qePeak = S.qe;
+      pendingLetter = null;
+    qeBuy.value = "0";
+    }
+
     var out = step(proposal);
+    var guideOut = checkGuide(proposal);
+
+    // A pledge made in the letter comes due four quarters later.
+    if (S.pledgeUntil && S.q >= S.pledgeUntil){
+      S.pledgeUntil = 0;
+      if (!inBand(S.infl, INFL_BAND) && S.infl > INFL_BAND.hi){
+        S.score -= 12; S.pledgeFailed = true;
+        S.cred = Math.max(0.5, S.cred - 0.3);
+      } else {
+        S.score += 8; S.cred = Math.min(1.5, S.cred + 0.2);
+      }
+    }
     var vote = $("vote");
     vote.className = "vote " + (v.against === 0 ? "won" : (v.against >= 4 ? "lost" : ""));
     $("voteTally").textContent = v.forV + "–" + v.against;
@@ -1841,11 +2113,15 @@
         + (v.far === 2 ? "it far lower." : (v.far === 1 ? "it clearly lower." : "it a little lower."));
     else $("voteText").textContent = "Carried, with " + v.against + " dissenting.";
     setEvent(out.ev, out.tier, !wasCrisis && S.crisisFired);
-    if (out.tier === 3) bigAlert(out.ev[0], out.ev[1], out.ev[2], "BREAKING");
-    else if (!wasCrisis && S.crisisFired)
-      bigAlert("🚨", "LETTER TO THE CHANCELLOR",
-               "Inflation above 3.5%. The Governor must explain himself in writing. −8 points.",
-               "CREDIBILITY");
+    // A crisis and the first breach usually land in the same quarter — the shock
+    // is what pushes inflation past 3.5%. Both must be shown, so the letter
+    // queues behind the news flash rather than being swallowed by it.
+    var letterDue = !wasCrisis && S.crisisFired;
+    if (out.tier === 3){
+      bigAlert(out.ev[0], out.ev[1], out.ev[2], "BREAKING");
+      if (letterDue) pendingLetter = out.tier > 0;
+    }
+    else if (letterDue) letterToChancellor(out.tier > 0);
     else if (out.tier === 2) vignette();
     render();
     renderStreak(!out.ok);
@@ -1876,6 +2152,7 @@
     $("evTitle").textContent = "Your first meeting";
     $("evText").textContent = "Inflation is 2.6% and drifting. Set Bank Rate — the Committee advises, you decide.";
     $("event").className = "event";
+    qeBuy.value = "0";
     shownScore = 0; lastStreak = 0;
     $("streak").className = "streak hide";
     $("newMedals").classList.add("hide");
