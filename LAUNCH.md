@@ -198,6 +198,15 @@ So, in order:
 approve almost anyone, in hours, because they monetise with pop-unders, push
 notifications and redirects.
 
+**Adsterra, specifically — approved, deliberately not installed.** An account
+was opened and on 14 August 2026 Adsterra approved holdorhike.com for two ad
+units: **Popunder (placement 30697790)** and **Social Bar (placement
+30697791)**. Neither tag is on the site and neither should be added while the
+AdSense application is in review — those are exactly the two formats the
+paragraph below is about. The decision is to wait for the AdSense outcome
+first. If AdSense rejects and reapplying is abandoned, this can be revisited as
+a deliberate choice; it should not be reversed by accident.
+
 Be precise about why that matters, because the looser version of this claim is
 wrong. **AdSense does not forbid running other ad networks** — plenty of
 publishers run several side by side. The rule is that any page carrying AdSense
