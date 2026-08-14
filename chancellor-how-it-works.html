@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>How the Budget model works — Hold or Hike</title>
+<meta name="description" content="The economics behind the Chancellor game: the fiscal multiplier, the OBR forecast and its revisions, the bond market, the debt snowball, and what the model cannot represent.">
+<meta name="theme-color" content="#0A0E1A">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23C8102E'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='40' font-weight='bold' text-anchor='middle' fill='white'%3E%C2%A3%3C/text%3E%3C/svg%3E">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8246785320309196" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="page.css">
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="chancellor.html"><span class="crest">£</span> Back to the game</a>
+
+  <h1>How the Budget model works</h1>
+  <p class="lede">The game is a toy, but it is not arbitrary. Every relationship in it
+    corresponds to something the Treasury actually argues about. Here is the whole thing,
+    with the numbers — including the parts it gets wrong on purpose, and the parts it
+    cannot represent at all.</p>
+
+  <h2>What you are steering</h2>
+  <p>You deliver five Budgets, one a year from 2026 to 2031, and then there is a general
+    election. Six levers: income tax and National Insurance, VAT and corporation tax on
+    one side; day-to-day departmental spending, welfare uprating and capital investment on
+    the other. Each is a <em>change</em> to a standing level, measured in billions of
+    pounds a year.</p>
+  <p>Six numbers judge you — growth, inflation, unemployment, borrowing, debt as a share
+    of GDP, and your poll lead — but only one of them decides whether you keep the job.</p>
+
+  <h2>The single most important rule</h2>
+  <p>The fiscal impulse is the <strong>change</strong> in the level, not the level. Raise
+    day-to-day spending by £40bn and you get one good year. The following year that £40bn
+    is the baseline, the boost has gone, and the bill has not. To get the same boost again
+    you have to find another £40bn, and then another.</p>
+  <p>This is not a game mechanic invented to stop you spending. It is why "£X billion
+    extra for the NHS" stops being growth after twelve months, and it is the reason a
+    government can increase spending every year of a parliament and still preside over a
+    slowing economy.</p>
+
+  <h2>The two things you cannot see</h2>
+  <p>The rate game hides the neutral rate, because nobody can observe it. This one hides
+    two numbers, for the same reason.</p>
+
+  <h3>The fiscal multiplier</h3>
+  <p>How much output does a pound of government spending actually buy? Serious economists
+    put it anywhere between 0.4 and 1.5 for the same pound of the same spending. That
+    spread is not ignorance that better data would close — the answer genuinely depends on
+    how much slack there is, on what the central bank does in response, and on how much of
+    the money leaks straight out into imports.</p>
+  <p>So the game draws a true value at the start and never shows it to you. Hiding it is
+    not a difficulty setting, it is the actual condition of the job. In the model it is
+    bigger when there is slack:</p>
+  <div class="box"><code>multiplier = true value × (1 − 0.18 × output gap)</code></div>
+  <p>Idle workers and idle factories mean a pound of new demand meets a supply response.
+    An economy already running hot meets a price response instead. This is why the same
+    Budget is stimulus in one year and inflation in the next, and it is the finding that
+    made the IMF revise its view of European austerity in 2013.</p>
+
+  <h3>The OBR's productivity forecast</h3>
+  <p>Everything you are judged against rests on one number: trend productivity growth. The
+    Office for Budget Responsibility publishes an estimate, the game opens it at 1.15%, and
+    the truth is drawn separately and never shown. Each year the estimate is marked partway
+    towards the truth, and <strong>nothing you do moves it</strong>.</p>
+  <p>When it is marked down, your headroom against the fiscal rule does not shrink — it
+    disappears. A downgrade of 0.2 percentage points compounds over five years into roughly
+    £14bn of receipts that were never going to arrive. You will feel that as unfair. It is
+    also, more or less exactly, what happened to every Chancellor of the last fifteen years.</p>
+
+  <h2>The fiscal rule, and headroom</h2>
+  <p>The hard constraint is that debt must be falling as a share of GDP by the final year
+    of the forecast. <b>Headroom</b> is the amount of extra borrowing a year you could take
+    on and still just satisfy it. The game starts you with about £10bn of it, which sounds
+    like a lot and is not: it is roughly 0.3% of GDP, or about four days of government
+    spending. Rachel Reeves's actual margin in March 2025 was £9.9bn.</p>
+  <p>The figure the game shows you while you drag the sliders is computed on the
+    <em>OBR's</em> assumptions, not on what turns out to be true. It is a forecast. Next
+    year it will have been wrong. That gap is the whole game.</p>
+
+  <h2>The Bank of England, inverted</h2>
+  <p>In the rate game you are the Governor and the Monetary Policy Committee only advises.
+    Here it is a reaction function, it is automatic, and you cannot overrule it:</p>
+  <div class="box"><code>Bank Rate → 3.5% + 1.5 × (inflation − 2%) + 0.5 × output gap</code></div>
+  <p>Loosen hard enough and the Bank takes the growth back off you through the mortgage
+    market. There is one deliberate subtlety: the Bank looks through only <em>half</em> of
+    a VAT rise, which is roughly its stated practice on indirect taxes. So a Chancellor who
+    raises VAT to fund a giveaway pays for it twice — once at the till, and once in
+    everybody's mortgage.</p>
+
+  <h2>The bond market</h2>
+  <p>Gilt yields do not respond to how much you borrow. They respond to how much more than
+    expected you borrow, and they respond far harder when the debt ratio is already rising,
+    because that is the point at which the market starts wondering whether anyone intends
+    to stop.</p>
+  <div class="box"><code>gilt yield += 0.012 × borrowing surprise × (1.8 if debt is rising)</code></div>
+  <p>The yield itself mean-reverts. The damage does not. About a tenth of the debt stock
+    reprices each year, so a spike keeps arriving in the interest bill for a decade after
+    the market has calmed down. The UK's saving grace here is real: it has the longest
+    average debt maturity in the G7, at about fourteen years, which is why a gilt crisis is
+    survivable at all.</p>
+
+  <h2>The snowball</h2>
+  <p>Debt as a share of GDP moves on the difference between the average interest rate on
+    the stock and nominal growth:</p>
+  <div class="box"><code>new ratio = old ratio × (1 + (interest rate − nominal growth)/100) + borrowing/GDP</code></div>
+  <p>If the rate exceeds growth, the ratio rises even with the budget balanced. This is why
+    cutting so hard that growth stops can raise the debt ratio you were cutting to lower.
+    The denominator is half the argument, and it is the half that gets forgotten.</p>
+
+  <h2>Scarring</h2>
+  <p>Run the economy far enough below capacity for long enough and some of the damage never
+    reverses. Skills go stale, people leave the workforce altogether, firms that would have
+    invested do not. The jobless floor rises permanently and easing later does not bring it
+    back. In the game this is the heaviest single penalty per year, deliberately: a scoring
+    rule that treated permanent lost output as a rounding error would be teaching the wrong
+    lesson.</p>
+
+  <h2>What the voters see</h2>
+  <p>Not the debt ratio. Real pay, whether anyone they know has lost a job, and how much
+    tax they pay. Borrowing is invisible to them, and that is the trap the game is built
+    around: the thing that destroys you in year five is the thing nobody punishes you for
+    in year one.</p>
+  <p>Two asymmetries are deliberate. A welfare cut costs more support than an equivalent
+    rise gains, because a cut produces named people on the news and a rise produces nobody.
+    And corporation tax is nearly free at the point of decision — its entire cost arrives
+    later, as business investment that did not happen and growth nobody can attribute to
+    anything.</p>
+
+  <h2>How par is set</h2>
+  <p>Par is measured, not guessed. Six programmatic strategies were run over 1,500 seeded
+    games each — do nothing, a funded capital-tilted Budget, borrow-and-spend, austerity, a
+    supply-side package, and the one that taxes companies to pay for welfare. Par is then
+    set so that the funded, competent Budget beats it about ten times in twelve.</p>
+  <p>Par moves with the hand you were dealt, because a term containing a banking crisis and
+    a productivity downgrade cannot be judged against a calm one:</p>
+  <div class="box"><code>par = 16 − 34 × crises − 7 × major shocks − 55 × productivity downgrade</code></div>
+  <p>Those sweeps also confirm the two things the model most needed to get right:
+    borrow-and-spend loses to the bond market, and austerity loses to scarring. Both lose
+    for the stated reason, not because they were penalised for it.</p>
+
+  <h2>What it deliberately leaves out</h2>
+  <p>No distinction between the different taxes' incidence across the income distribution,
+    which is most of what a real Budget argument is about. No devolved administrations, no
+    local government, no distinction between current and capital departmental limits, no
+    demographics and so no honest account of the thing that actually drives long-run
+    spending. No exchange rate you can see, no housing market, no banking system, and no
+    private sector balance sheet. The whole yield curve is one number. Public services
+    exist only as a quantity of money, so there is no such thing in this model as spending
+    it badly.</p>
+  <p>It also cannot represent the single most important constraint on a real Chancellor,
+    which is that a Budget has to get through a Cabinet, a party and a Parliament. In the
+    game the levers simply move.</p>
+  <p>Real fiscal forecasting models run to hundreds of equations and still miss by tens of
+    billions. This one has about seven, and the point of it is the trade-off, not the
+    forecast.</p>
+
+  <a class="play" href="chancellor.html">Play the game →</a>
+
+  <footer>
+    <a href="chancellor.html">Game</a> · <a href="index.html">The rate game</a> ·
+    <a href="how-it-works.html">The rate model</a> · <a href="faq.html">Questions</a> ·
+    <a href="about.html">About</a> · <a href="privacy.html">Privacy</a> ·
+    <a href="https://buymeacoffee.com/holdorhike" target="_blank" rel="noopener">Buy me a coffee</a><br>
+    An independent game. Not affiliated with, endorsed by, or connected to HM Treasury, the
+    Office for Budget Responsibility or the Bank of England. A simplified model, for
+    entertainment — not economic advice.
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Red Box — a UK Budget game</title>
+<meta name="description" content="Five Budgets. Six levers. Balance the books, grow the economy, and win the election — if the forecast lets you.">
+<meta name="theme-color" content="#0A0E1A">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8246785320309196" crossorigin="anonymous"></script>
+<link rel="canonical" href="https://holdorhike.com/chancellor.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23C8102E'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='40' font-weight='bold' text-anchor='middle' fill='white'%3E%C2%A3%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="https://holdorhike.com/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Hold or Hike">
+<meta property="og:title" content="Red Box — a UK Budget game">
+<meta property="og:description" content="Five Budgets. Six levers. Balance the books, grow the economy, and win the election — if the forecast lets you.">
+<meta property="og:url" content="https://holdorhike.com/chancellor.html">
+<meta property="og:image" content="https://holdorhike.com/share.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Red Box — a UK Budget game">
+<meta name="twitter:description" content="Five Budgets, then they vote. Can you beat the forecast?">
+<meta name="twitter:image" content="https://holdorhike.com/share.png">
+<style>
+  /* Single-theme arcade screen, painted explicitly so it holds on any host.
+     Same tokens as the rate game, with the Treasury's red in place of the
+     Bank's, and two new accents for the two sides of the balance. */
+  :root{
+    --bg:#0A0E1A; --panel:#141B2E; --raised:#1D2739; --line:#2A3549;
+    --ink:#EAF0FA; --muted:#8A97AE;
+    --good:#3DDC97; --warn:#FFC145; --bad:#FF5D5D;
+    --infl:#4CC9F0; --unemp:#FFA45B; --debt:#B980F0; --poll:#3DDC97;
+    --tax:#FFC145; --spend:#4CC9F0;
+    --cta:#C8102E;
+    --r:18px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent;
+    overflow-x:hidden;
+  }
+  .app{max-width:480px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;
+    padding:calc(env(safe-area-inset-top) + 10px) 12px 0;gap:10px}
+
+  /* ---- HUD ---- */
+  .hud{display:flex;align-items:center;gap:10px}
+  .term{flex:1 1 auto;min-width:0}
+  .term .q{font-size:15px;font-weight:800;letter-spacing:-.2px}
+  .term .sub{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .score{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:999px;
+    padding:6px 14px;display:flex;align-items:baseline;gap:4px;flex:0 0 auto}
+  .score b{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
+  .score i{font-style:normal;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .pop{position:absolute;left:50%;top:-2px;transform:translateX(-50%);font-weight:900;font-size:15px;
+    pointer-events:none;animation:rise 1s ease-out forwards}
+  .pop.up{color:var(--good)} .pop.dn{color:var(--bad)}
+  @keyframes rise{to{transform:translate(-50%,-26px);opacity:0}}
+  .icon-btn{flex:0 0 auto;width:40px;height:40px;border-radius:12px;background:var(--panel);
+    border:1px solid var(--line);color:var(--muted);font-size:15px;display:grid;place-items:center;
+    cursor:pointer;padding:0}
+  .icon-btn.confirm{color:var(--bad);border-color:var(--bad)}
+  .dots{display:flex;gap:3px}
+  .dot{flex:1 1 0;height:4px;border-radius:2px;background:var(--line)}
+  .dot.hit{background:var(--good)} .dot.miss{background:var(--bad)} .dot.now{background:var(--ink)}
+
+  /* ---- Stat tiles ---- */
+  .tiles{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:9px 9px 8px;position:relative;overflow:hidden;transition:border-color .3s,background .3s}
+  .tile.out{border-color:var(--bad);background:linear-gradient(180deg,rgba(255,93,93,.14),var(--panel) 60%)}
+  .tile .lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--muted);
+    display:flex;align-items:center;gap:4px;white-space:nowrap}
+  .swatch{width:7px;height:7px;border-radius:50%;display:inline-block;flex:0 0 auto}
+  .big{font-size:25px;font-weight:900;line-height:1;letter-spacing:-1px;font-variant-numeric:tabular-nums;
+    margin:5px 0 1px;display:flex;align-items:baseline;gap:1px}
+  .big em{font-style:normal;font-size:12px;font-weight:800;color:var(--muted)}
+  .big .arrow{font-size:12px;margin-left:auto;font-weight:800}
+  .up{color:var(--bad)} .down{color:var(--good)} .flat{color:var(--muted)}
+  @keyframes goodflash{0%{box-shadow:0 0 0 0 rgba(61,220,151,.55);border-color:var(--good)}
+    100%{box-shadow:0 0 0 14px rgba(61,220,151,0);border-color:var(--line)}}
+  .tile.flash-good{animation:goodflash .7s ease-out}
+
+  /* ---- The one tabbed chart ----
+     Three series share a single canvas, tapped to cycle. Three separate tiles
+     would cost 90px of height that the extra levers need. */
+  .chartbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px 10px 6px}
+  .chartbox .hd{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+  .chartbox .hd b{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px}
+  .chartbox .hd .cyc{margin-left:auto;font-size:10px;color:var(--muted);border:1px solid var(--line);
+    border-radius:999px;padding:2px 8px}
+  .spark{width:100%;height:46px;display:block}
+
+  /* ---- Event card ---- */
+  .event{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+    padding:12px;display:flex;gap:11px;align-items:center;min-height:70px}
+  .event .em{font-size:26px;line-height:1;flex:0 0 auto}
+  .event .h{display:block;font-weight:800;font-size:14px;margin-bottom:3px}
+  .event .p{display:block;font-size:12px;color:var(--muted);line-height:1.35}
+  .event.warn{border-color:var(--warn);background:linear-gradient(180deg,rgba(255,193,69,.14),var(--panel) 70%)}
+  .event.warn .h{color:var(--warn)}
+  .event.bad{border-color:var(--bad);background:linear-gradient(180deg,rgba(255,93,93,.18),var(--panel) 70%);
+    animation:pulse .7s ease-out}
+  .event.bad .h{color:var(--bad)}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,93,93,.6)}100%{box-shadow:0 0 0 16px rgba(255,93,93,0)}}
+
+  /* ---- The Bank's reaction, in the rate game's committee strip ---- */
+  .vote{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);
+    background:var(--raised);border-radius:12px;padding:8px 10px}
+  .vote .tally{font-weight:900;font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink);
+    background:var(--line);border-radius:7px;padding:3px 8px;flex:0 0 auto}
+  .vote.lost{color:var(--warn)}
+  .vote.lost .tally{background:rgba(255,193,69,.22);color:var(--warn)}
+
+  /* ---- Headroom bar ----
+     Zero sits in the middle. Green to the left is room against the fiscal rule,
+     red to the right is the hole. It moves live as the sliders move. */
+  .hroom{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:9px 11px 10px}
+  .hroom .top{display:flex;align-items:baseline;gap:8px;font-size:10px;font-weight:700;
+    text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+  .hroom .top b{margin-left:auto;font-size:17px;font-variant-numeric:tabular-nums;letter-spacing:-.4px;
+    text-transform:none}
+  .hbar{position:relative;height:9px;border-radius:5px;background:var(--raised);margin-top:7px;overflow:hidden}
+  .hbar .fill{position:absolute;top:0;bottom:0;transition:left .25s ease,width .25s ease,background .25s}
+  .hbar .zero{position:absolute;top:-3px;bottom:-3px;left:50%;width:2px;background:var(--ink);opacity:.55}
+
+  /* ---- Budget dock ---- */
+  .dock{position:sticky;bottom:0;margin:auto -12px 0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    background:var(--bg);z-index:5;border-top:1px solid var(--line)}
+  .dock::before{content:"";position:absolute;left:0;right:0;top:-20px;height:20px;
+    background:linear-gradient(180deg,rgba(10,14,26,0),var(--bg));pointer-events:none}
+
+  /* The pinned arithmetic. Sits ABOVE the tab toggle so it never moves when you
+     switch sides: the consequence stays put while the cause changes. */
+  .sums{display:flex;gap:6px;margin-bottom:8px}
+  .sum{flex:1 1 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:6px 8px;min-width:0}
+  .sum i{font-style:normal;display:block;font-size:9px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.8px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sum b{display:block;font-size:15px;font-weight:900;font-variant-numeric:tabular-nums;
+    letter-spacing:-.4px;margin-top:2px}
+  .sum.ok b{color:var(--good)} .sum.no b{color:var(--bad)}
+
+  .tabs{display:flex;background:var(--raised);border-radius:12px;padding:3px;margin-bottom:8px;height:36px}
+  .tabs button{flex:1 1 0;border:0;background:transparent;color:var(--muted);font-size:11px;font-weight:800;
+    text-transform:uppercase;letter-spacing:1.2px;border-radius:9px;cursor:pointer;padding:0;
+    display:flex;align-items:center;justify-content:center;gap:5px}
+  .tabs button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+  .tabs button[data-side="tax"].on{color:var(--tax)}
+  .tabs button[data-side="spend"].on{color:var(--spend)}
+  /* A dot on the tab you are not looking at, when you have moved something on it.
+     Nobody should deliver a Budget having forgotten they moved VAT. */
+  .tabs .badge{width:6px;height:6px;border-radius:50%;background:var(--cta);opacity:0;transition:opacity .2s}
+  .tabs .badge.on{opacity:1}
+
+  /* One flex line per lever: label, value, then minus/slider/plus. The rate
+     game's two-line row is 100px, which six levers cannot afford. */
+  .lev{display:flex;align-items:center;gap:8px;height:42px}
+  .lev .nm{flex:0 0 84px;font-size:10px;font-weight:700;line-height:1.15;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.5px}
+  .lev .amt{flex:0 0 60px;font-size:14px;font-weight:900;font-variant-numeric:tabular-nums;
+    text-align:right;letter-spacing:-.3px}
+  .lev .amt.z{color:var(--muted)}
+  .lev.tax .amt:not(.z){color:var(--tax)}
+  .lev.spend .amt:not(.z){color:var(--spend)}
+  .lev .step{flex:0 0 auto;width:30px;height:34px;border-radius:10px;background:var(--raised);
+    border:1px solid var(--line);color:var(--ink);font-size:19px;font-weight:800;line-height:1;
+    display:grid;place-items:center;cursor:pointer;padding:0;touch-action:manipulation;
+    -webkit-user-select:none;user-select:none}
+  .lev .step:disabled{opacity:.3}
+  .lev .step:active{transform:scale(.94)}
+  .lev input[type=range]{flex:1 1 auto;min-width:0;height:34px;margin:0;background:transparent;
+    -webkit-appearance:none;appearance:none;touch-action:pan-y}
+  input[type=range]:focus-visible{outline:2px solid var(--infl);outline-offset:3px;border-radius:8px}
+  .lev input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:4px;background:var(--line)}
+  .lev input[type=range]::-moz-range-track{height:6px;border-radius:4px;background:var(--line)}
+  .lev input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;
+    border-radius:50%;background:#fff;border:3px solid var(--cta);margin-top:-8px;cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.5)}
+  .lev input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;
+    background:#fff;border:3px solid var(--cta);cursor:pointer}
+  .lev.tax input[type=range]::-webkit-slider-thumb{border-color:var(--tax)}
+  .lev.tax input[type=range]::-moz-range-thumb{border-color:var(--tax)}
+  .lev.spend input[type=range]::-webkit-slider-thumb{border-color:var(--spend)}
+  .lev.spend input[type=range]::-moz-range-thumb{border-color:var(--spend)}
+
+  .go{width:100%;height:52px;border:0;border-radius:16px;background:var(--cta);color:#fff;
+    font-size:15px;font-weight:900;letter-spacing:1.4px;text-transform:uppercase;cursor:pointer;
+    margin-top:8px;touch-action:manipulation}
+  .go:active{transform:scale(.99)}
+  .go.share{background:var(--panel);border:1px solid var(--line);color:var(--ink)}
+  .go[disabled]{opacity:.45}
+
+  /* ---- Intro ---- */
+  .crestbig{width:54px;height:54px;border-radius:15px;background:var(--cta);display:grid;place-items:center;
+    font:bold 32px Georgia,serif;color:#fff;margin-bottom:12px}
+  h1{font-size:29px;line-height:1.1;letter-spacing:-1px;margin:0 0 8px}
+  .lede{font-size:14px;color:var(--muted);line-height:1.5;margin:0 0 14px}
+  .guide{list-style:none;padding:0;margin:0 0 14px;display:flex;flex-direction:column;gap:9px}
+  .guide li{display:flex;gap:10px;font-size:12.5px;line-height:1.4;color:var(--muted)}
+  .guide .n{flex:0 0 22px;height:22px;border-radius:50%;background:var(--raised);color:var(--ink);
+    font-size:11px;font-weight:800;display:grid;place-items:center}
+  .guide b{display:block;color:var(--ink);font-size:13px;margin-bottom:1px}
+
+  /* ---- Results ---- */
+  .sheet{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+  .sheet .medal{font-size:40px;line-height:1}
+  .sheet h2{margin:6px 0 4px;font-size:21px;letter-spacing:-.4px}
+  .sheet .say{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.45}
+  .story{width:100%;height:190px;display:block;margin-bottom:6px}
+  .storykey{display:flex;flex-wrap:wrap;gap:10px;font-size:10px;color:var(--muted);margin-bottom:12px}
+  .storykey .sw{width:9px;height:3px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle}
+  .storykey .dash{border-top:2px dashed var(--muted);width:11px;display:inline-block;margin-right:4px;
+    vertical-align:middle}
+  .ln{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:7px 0;
+    border-bottom:1px solid var(--line)}
+  .ln .v{font-variant-numeric:tabular-nums;font-weight:700;flex:0 0 auto}
+  .ln.total{border-bottom:0;font-size:16px;font-weight:900;padding-top:10px}
+  .pos{color:var(--good)} .neg{color:var(--bad)}
+  .diag{background:var(--raised);border-left:3px solid var(--infl);border-radius:10px;padding:10px 12px;
+    margin-bottom:12px;font-size:12px;line-height:1.45}
+  .diag b{display:block;font-size:13px;margin-bottom:3px}
+  .diag span{color:var(--muted)}
+  .nm{display:flex;gap:10px;align-items:center;background:var(--raised);border-radius:12px;
+    padding:9px 11px;margin-bottom:9px;font-size:12px}
+  .nm .e{font-size:22px;flex:0 0 auto}
+  .nm b{display:block;font-size:13px}
+  .nm span span{color:var(--muted);display:block}
+  .nm .tag{margin-left:auto;font-size:9px;font-weight:800;letter-spacing:1px;color:var(--cta)}
+  .nm.quiet{opacity:.7}
+  .newmedals{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+  .sharecard{white-space:pre-wrap;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+    background:var(--raised);border-radius:12px;padding:11px;margin-bottom:10px;color:var(--muted)}
+  textarea{width:100%;height:120px;background:var(--raised);color:var(--ink);border:1px solid var(--line);
+    border-radius:12px;padding:10px;font:12px/1.5 ui-monospace,monospace;resize:none;margin-top:9px}
+  .tipbtn{display:block;text-align:center;margin-top:9px;font-size:12px;color:var(--muted);
+    text-decoration:none;padding:9px;border:1px solid var(--line);border-radius:12px}
+
+  /* ---- Breaking news ---- */
+  .alert{position:fixed;inset:0;background:rgba(5,8,16,.86);display:grid;place-items:center;z-index:50;
+    padding:22px;animation:fade .25s ease-out}
+  @keyframes fade{from{opacity:0}}
+  .alertbox{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px;
+    max-width:340px;text-align:center;position:relative}
+  .ribbon{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--cta);
+    color:#fff;font-size:10px;font-weight:900;letter-spacing:1.6px;padding:4px 12px;border-radius:999px}
+  .ae{font-size:44px;line-height:1;margin-bottom:8px}
+  .alertbox h2{margin:0 0 7px;font-size:19px;letter-spacing:-.3px}
+  .alertbox p{margin:0;font-size:13px;color:var(--muted);line-height:1.45}
+  .tapon{margin-top:14px;font-size:10px;color:var(--muted);letter-spacing:1.4px;text-transform:uppercase}
+
+  .adwrap{margin:2px 0}
+  .adlabel{font-size:9px;color:#3D4863;letter-spacing:1.4px;text-transform:uppercase;margin-bottom:3px}
+  .ad-slot.live{border:0;padding:0;display:block}
+  .ad-slot{min-height:64px;border:1px dashed var(--line);border-radius:14px;display:grid;place-items:center;
+    color:#4C5875;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;padding:8px}
+
+  /* The chart is given most of the space the dock does not need. Deliberately a
+     fixed height rather than flex:1 — letting it grow to fill pushes the total
+     past the viewport, because the page is free to scroll and nothing caps it,
+     and a Budget screen that scrolls is the thing this layout exists to avoid. */
+  #budget.screen{flex:1 1 auto;display:flex;flex-direction:column}
+  #budget .spark{height:104px}
+  /* On a short screen the chart and the headline figures give up their space
+     first, so the sliders and the arithmetic keep theirs. */
+  @media (max-height:720px){
+    #budget .spark{height:44px}
+    .tiles .big{font-size:20px;margin:3px 0 0}
+    .hroom{padding:6px 11px 7px}
+    .chartbox{padding:6px 10px 4px}
+    .lev{height:36px}
+    .lev .step{height:30px}
+    .lev input[type=range]{height:30px}
+    .tabs{height:32px;margin-bottom:6px}
+    .sums{margin-bottom:6px}
+    .sum{padding:4px 8px}
+    .sum b{font-size:14px}
+    .go{height:44px;margin-top:6px}
+    .app{gap:7px}
+  }
+  .hide{display:none !important}
+  footer{font-size:10px;color:#4C5875;text-align:center;padding:10px 0 14px;line-height:1.8}
+  footer a{color:#8A97AE;text-decoration:none;border-bottom:1px solid var(--line)}
+  footer a:hover{color:var(--ink)}
+  @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div id="intro">
+    <div class="crestbig">£</div>
+    <h1>Red Box</h1>
+    <p class="lede">Five Budgets, 2026 to 2031, then they vote. Six levers, two of
+      which pay off after you have gone, and a forecast that will be revised
+      underneath you. Balance the books if you can.</p>
+
+    <ol class="guide">
+      <li><span class="n">1</span><span><b>Five Budgets, then a general election</b>
+        One Budget a year. The election is the result — the score is only how you got there.</span></li>
+      <li><span class="n">2</span><span><b>Six levers, three each side</b>
+        Income tax and NI, VAT, corporation tax. Day-to-day spending, welfare, capital
+        investment. Each one is a change to the standing level, in £bn a year.</span></li>
+      <li><span class="n">3</span><span><b>A giveaway only works once</b>
+        This year's increase is next year's baseline. The boost goes; the bill stays.</span></li>
+      <li><span class="n">4</span><span><b>The Bank is watching</b>
+        Loosen too hard and the Monetary Policy Committee raises Bank Rate on you.
+        It cannot be overruled — you are not the Governor here.</span></li>
+      <li><span class="n">5</span><span><b>The bond market prices the surprise</b>
+        Borrow more than expected while debt is rising and gilt yields move. Debt
+        interest then eats the headroom you were spending.</span></li>
+      <li><span class="n">6</span><span><b>The fiscal rule is the hard constraint</b>
+        Debt must be falling as a share of GDP by 2031. The forecast that judges you
+        gets revised, and not usually in your favour.</span></li>
+    </ol>
+
+    <div class="ad-slot" id="adIntro" data-ad="intro">Advertisement</div>
+    <div class="dock" style="position:static;border-top:0;margin:0;padding:10px 0 0">
+      <button class="go" id="start">TAKE OFFICE</button>
+    </div>
+  </div>
+
+  <div class="hud hide" id="hud">
+    <div class="term">
+      <div class="q" id="yName">Budget 2026</div>
+      <div class="sub" id="yNum">Year 1 of 5</div>
+    </div>
+    <div class="score"><b id="score">0</b><i>pts</i></div>
+    <button class="icon-btn" id="restart" title="Restart" aria-label="Restart">↻</button>
+  </div>
+
+  <div class="dots hide" id="dots" aria-hidden="true"></div>
+
+  <!-- ============ SCREEN A: the forecast ============ -->
+  <div id="forecast" class="hide">
+    <div class="event" id="fcEvent" aria-live="polite">
+      <span class="em" id="fcEmoji">📊</span>
+      <span><span class="h" id="fcTitle">The forecast</span>
+      <span class="p" id="fcText"></span></span>
+    </div>
+    <div class="hroom" style="margin-top:10px">
+      <div class="top">Headroom against the fiscal rule <b id="fcRoom">£10.4bn</b></div>
+      <div class="hbar"><span class="fill" id="fcFill"></span><span class="zero"></span></div>
+    </div>
+    <div class="adwrap" style="margin-top:10px">
+      <div class="adlabel">Advertisement</div>
+      <div class="ad-slot" id="adTop" data-ad="banner"></div>
+    </div>
+    <div class="dock" style="position:static;border-top:0;margin:0;padding:10px 0 0">
+      <button class="go" id="toBudget">OPEN THE RED BOX</button>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN B: the Budget ============ -->
+  <div id="budget" class="screen hide">
+    <div class="tiles">
+      <div class="tile" id="tileG">
+        <div class="lbl"><span class="swatch" style="background:var(--good)"></span> Growth</div>
+        <div class="big"><span id="gVal">1.3</span><em>%</em><span class="arrow flat" id="gArr">→</span></div>
+      </div>
+      <div class="tile" id="tileI">
+        <div class="lbl"><span class="swatch" style="background:var(--infl)"></span> CPI</div>
+        <div class="big"><span id="iVal">2.6</span><em>%</em><span class="arrow flat" id="iArr">→</span></div>
+      </div>
+      <div class="tile" id="tileD">
+        <div class="lbl"><span class="swatch" style="background:var(--debt)"></span> Debt</div>
+        <div class="big"><span id="dVal">95.5</span><em>%</em><span class="arrow flat" id="dArr">→</span></div>
+      </div>
+    </div>
+
+    <div class="chartbox">
+      <div class="hd"><span class="swatch" id="chSwatch" style="background:var(--good)"></span>
+        <b id="chName">Growth</b><span class="cyc" id="chCyc">tap to change</span></div>
+      <canvas class="spark" id="spark" aria-label="Your record so far"></canvas>
+    </div>
+
+    <div class="hroom">
+      <div class="top">Headroom <b id="bRoom">£10.4bn</b></div>
+      <div class="hbar"><span class="fill" id="bFill"></span><span class="zero"></span></div>
+    </div>
+
+    <div class="dock">
+      <div class="sums">
+        <div class="sum"><i>Borrowing</i><b id="sBorrow">£125bn</b></div>
+        <div class="sum"><i>Debt 2031</i><b id="sDebt">—</b></div>
+        <div class="sum" id="sRuleBox"><i>Fiscal rule</i><b id="sRule">—</b></div>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button role="tab" data-side="tax" class="on" id="tabTax">Tax <span class="badge" id="bTax"></span></button>
+        <button role="tab" data-side="spend" id="tabSpend">Spend <span class="badge" id="bSpend"></span></button>
+      </div>
+
+      <div id="levers"></div>
+
+      <button class="go" id="deliver">DELIVER THE BUDGET</button>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN C: the year ============ -->
+  <div id="year" class="hide">
+    <div class="event" id="yrEvent" aria-live="polite">
+      <span class="em" id="yrEmoji">📰</span>
+      <span><span class="h" id="yrTitle"></span>
+      <span class="p" id="yrText"></span></span>
+    </div>
+    <div class="vote" id="mpcRow" aria-live="polite" style="margin-top:10px">
+      <span class="tally" id="mpcTally">MPC</span>
+      <span id="mpcText"></span>
+    </div>
+    <div class="vote" id="giltRow" aria-live="polite" style="margin-top:8px">
+      <span class="tally" id="giltTally">GILTS</span>
+      <span id="giltText"></span>
+    </div>
+    <div class="tiles" id="deltas" style="margin-top:10px;grid-template-columns:1fr 1fr"></div>
+    <div class="dock" style="position:static;border-top:0;margin:0;padding:10px 0 0">
+      <button class="go" id="nextYear">CONTINUE</button>
+    </div>
+  </div>
+
+  <!-- ============ END ============ -->
+  <div id="end" class="hide">
+    <div class="sheet">
+      <canvas id="story" class="story" aria-label="Your five years"></canvas>
+      <div class="storykey">
+        <span><i class="sw" style="background:var(--good)"></i>Growth</span>
+        <span><i class="sw" style="background:var(--debt)"></i>Debt/GDP</span>
+        <span><i class="sw" style="background:var(--poll)"></i>Poll lead</span>
+        <span><i class="dash"></i>What the OBR forecast at the time</span>
+      </div>
+      <div class="diag" id="truth" style="border-left-color:var(--warn)"></div>
+      <div class="diag" id="diag"></div>
+      <div class="nm hide" id="best"></div>
+      <div class="newmedals hide" id="newMedals"></div>
+      <div class="medal" id="medal">🎖️</div>
+      <h2 id="rating">—</h2>
+      <div class="say" id="say"></div>
+      <div id="lines"></div>
+      <div class="ad-slot" id="adResults" data-ad="results" style="margin:14px 0 12px">Advertisement</div>
+      <div class="sharecard" id="shareCard" aria-hidden="true"></div>
+      <button class="go share" id="share">SHARE RESULT</button>
+      <button class="go" id="again" style="margin-top:9px">PLAY AGAIN</button>
+      <a class="tipbtn hide" id="tip" target="_blank" rel="noopener">☕ Buy me a coffee</a>
+      <textarea id="shareFallback" class="hide" readonly aria-label="Your result, ready to copy"></textarea>
+    </div>
+  </div>
+
+  <div class="alert hide" id="alert" role="alertdialog" aria-live="assertive" aria-label="Breaking news">
+    <div class="alertbox">
+      <div class="ribbon" id="alertRibbon">BREAKING</div>
+      <div class="ae" id="alertEmoji">💥</div>
+      <h2 id="alertTitle"></h2>
+      <p id="alertText"></p>
+      <div class="tapon">Tap to continue</div>
+    </div>
+  </div>
+
+  <footer>An independent game. Not affiliated with, endorsed by, or connected to
+    HM Treasury, the Office for Budget Responsibility or the Bank of England. A
+    simplified model, for entertainment — not economic advice.<br>
+    <a href="index.html">The rate game</a> · <a href="chancellor-how-it-works.html">How the model works</a> ·
+    <a href="about.html">About</a> · <a href="privacy.html">Privacy</a> ·
+    <a href="https://buymeacoffee.com/holdorhike" target="_blank" rel="noopener">Buy me a coffee</a></footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Advertising ----------
+  var ADS = { client: "ca-pub-8246785320309196", slots: { intro: "", banner: "", results: "" } };
+  var GA = { id: "" };
+  var TIP = { url: "https://buymeacoffee.com/holdorhike" };
+
+  function initGA(){
+    if (!GA.id) return;
+    var s = document.createElement("script");
+    s.async = true; s.src = "https://www.googletagmanager.com/gtag/js?id=" + GA.id;
+    document.head.appendChild(s);
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function(){ window.dataLayer.push(arguments); };
+    window.gtag("js", new Date());
+    window.gtag("config", GA.id);
+  }
+  function track(name, params){
+    if (window.gtag) try { window.gtag("event", name, params || {}); } catch(e){}
+  }
+  function initAds(){
+    if (!ADS.client) return;
+    document.querySelectorAll(".ad-slot").forEach(function(el){
+      var slot = ADS.slots[el.getAttribute("data-ad")];
+      if (!slot) return;
+      el.textContent = ""; el.classList.add("live");
+      var ins = document.createElement("ins");
+      ins.className = "adsbygoogle";
+      ins.style.display = "block";
+      ins.setAttribute("data-ad-client", ADS.client);
+      ins.setAttribute("data-ad-slot", slot);
+      ins.setAttribute("data-ad-format", "auto");
+      ins.setAttribute("data-full-width-responsive", "true");
+      el.appendChild(ins);
+      try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e){}
+    });
+  }
+
+  // ================= CALIBRATION (Budget 2026) =================
+  // Every starting figure is a real 2025-26 outturn or the published trajectory
+  // for 2026-27. They are not tuned for balance; the coefficients below are.
+  var GDP0 = 2900;                        // £bn nominal, 2026-27
+  // Ex-interest. The primary balance is set so the fiscal rule starts on a knife
+  // edge — about £10bn of headroom, which was Reeves's actual margin in March
+  // 2025. That number is the whole point: 0.3% of GDP, roughly four days of
+  // government spending, and the entire rule turns on it.
+  var RECEIPTS0 = 1150, SPEND0 = 1124;    // 1124 + 104 - 1150 = 78
+  var DEBT0 = 2770;                       // £bn, PSND ex BoE = 95.5% of GDP
+  var START = {
+    growth:1.3, infl:2.6, unemp:4.9,      // the last two match the rate game exactly
+    rate:3.75, gilt:4.45,                 // Bank Rate and the 10-year
+    borrow:78, debtRatio:95.5, interest:104,
+    effDebtRate:3.75,
+    lead:-8                               // the government trails by eight
+  };
+  var YEARS = 5, START_YEAR = 2026;
+
+  // Lever ranges, £bn a year, as CHANGES to the standing level.
+  var LEVERS = [
+    { k:"tax",  lo:-15, hi:25, step:2.5, side:"tax",   name:"Income tax &amp; NI" },
+    { k:"vat",  lo:-10, hi:20, step:2.5, side:"tax",   name:"VAT" },
+    { k:"corp", lo:-10, hi:20, step:2.5, side:"tax",   name:"Corporation tax" },
+    { k:"dts",  lo:-25, hi:40, step:2.5, side:"spend", name:"Day-to-day spend" },
+    { k:"welf", lo:-15, hi:25, step:2.5, side:"spend", name:"Welfare uprating" },
+    { k:"cap",  lo:-10, hi:30, step:2.5, side:"spend", name:"Capital investment" }
+  ];
+
+  // Instrument weights. Welfare is highest because transfers to households
+  // without a savings buffer are spent, not banked. Corporation tax is lowest:
+  // business investment responds with a lag and leaks into imported capital
+  // goods. Its real bite is on potential output, below. Income tax sits below
+  // VAT because a tax rise falls partly on saving, where VAT falls almost
+  // entirely on spending — which makes VAT the more contractionary pound.
+  var W_DTS = 1.00, W_CAP = 1.15, W_WELF = 1.30, W_TAX = 0.60, W_VAT = 0.95, W_CORP = 0.30;
+
+  // The hidden multiplier, and how much bigger it is when there is slack.
+  var MULT_DRAW = [0.65,0.75,0.9,1.05,1.2,1.35];
+  var MULT_SLACK = 0.18, MULT_MIN = 0.40, MULT_MAX = 1.70;
+
+  // Output, prices, jobs
+  var OGAP_PERSIST = 0.55, RATE_TO_GAP = 0.45, YIELD_TO_GAP = 0.20;
+  var TREND_BASE = 1.3;
+  var CAP_LAG = 3,  CAP_POT  =  0.0026;   // pp of trend per £bn of matured stock
+  var CORP_LAG = 2, CORP_POT = -0.0010;   // pp per £bn-year of standing CT rise
+  var PHILLIPS = 0.35, ANCHOR = 0.30, RATE_TO_INFL = 0.35;
+  var VAT_CPI = 0.041;                    // 1pp VAT = £8.5bn = 0.35pp on CPI
+  var WELF_CPI = 0.012;
+  var INFL_BAND = { lo:1.0, hi:3.0 };
+  var INFL_FLOOR = -3, INFL_CEIL = 22;
+  var NATURAL_BASE = 4.4, SCAR_THRESHOLD = 2.0, SCAR_RATE = 0.08;   // annual
+  var UNEMP_FLOOR = 2, UNEMP_CEIL = 16;
+
+  // The Bank, now a reaction function rather than an opinion
+  var MPC_NEUTRAL = 3.5, TAYLOR_PI = 1.5, TAYLOR_Y = 0.5;
+  var MPC_SMOOTH = 0.45, MPC_VAT_LOOK = 0.5, RATE_MAX = 12;
+
+  // The books
+  var TAX_ELAST_BASE = 11, CORP_CYC = 0.09, INFL_DRAG = 6, UPRATE = 5.5;
+  // How much of the debt stock reprices in a year. The UK has the longest
+  // average maturity in the G7 — about fourteen years — so a yield spike arrives
+  // slowly. That is the one piece of good luck in the British fiscal position,
+  // and it is why a gilt crisis is survivable at all. A quarter of the stock a
+  // year, which is roughly the US, makes the interest bill explode on its own.
+  var REPRICE = 0.10, ILG_SHARE = 0.25;
+
+  // The bond market
+  var BOND_SURPRISE = 0.012, BOND_PANIC = 1.8, BOND_MEAN = 0.35, TERM_PREMIUM = 0.9;
+
+  // The forecast (hidden)
+  var PROD_DRAW = [0.5,0.7,0.9,1.1,1.3];
+  var PROD_OBR0 = 1.15, OBR_LEARN = 0.40;
+  var PROD_BAD_ODDS = 0.75;               // three games in four get a markdown
+
+  // The electorate
+  // Real pay is what actually decides British elections, and it is weighted to
+  // say so. Taxes cost you, but a Chancellor who delivers rising real incomes
+  // can raise taxes and survive — which is the only reason a funded programme is
+  // playable at all. Get this wrong and the game collapses to "do nothing".
+  var POLL_MEAN = 0.22, POLL_BASE = -4, POLL_PAY = 3.2, POLL_UNEMP = 4.0;
+  var POLL_TAX = 2.4, POLL_VAT = 4.4, POLL_SPEND = 1.6;
+  var POLL_WELF = 3.0, POLL_WELF_CUT = 4.6, POLL_CORP = 0.35, POLL_RATE = 1.2;
+  var SWING_SD = 2.5;
+
+  // Scoring
+  // Par moves with the hand you were dealt, exactly as it does in the rate game:
+  // a term with a banking crisis and a productivity downgrade in it cannot be
+  // judged against a calm one. The base and the coefficients are measured, not
+  // guessed — see the caveat page. The productivity term is the big one, because
+  // being marked down is the single largest thing that happens to a Chancellor
+  // who did nothing wrong.
+  var PAR_BASE = 16, PAR_CRISIS = 34, PAR_MAJOR = 7, PAR_PROD = 55;
+  function par(){
+    return PAR_BASE - PAR_CRISIS*S.crisisHits - PAR_MAJOR*S.majorHits
+         - PAR_PROD*Math.max(0, PROD_OBR0 - S.prodTrue);
+  }
+  var STORE = "chancellor.v1";
+
+  // ---------- Helpers (from the rate game, unchanged) ----------
+  var $ = function(id){ return document.getElementById(id); };
+  function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+  function inBand(v,b){ return v>=b.lo && v<=b.hi; }
+  function outBy(v,b){ return v<b.lo ? b.lo-v : (v>b.hi ? v-b.hi : 0); }
+  function f1(v){ return v.toFixed(1)+"%"; }
+  function bn(v){ var r = Math.round(v); return (r<0?"−£":"£") + Math.abs(r) + "bn"; }
+  function sbn(v){ var r = Math.round(v*10)/10; return (r>0?"+£":r<0?"−£":"£") + Math.abs(r) + "bn"; }
+
+  // Seeded RNG, so a sweep is reproducible and a bug is findable. The rate game
+  // could use Math.random because its par was measured against a script; par
+  // here has to be measured against thousands of runs of this same code.
+  var seed = 0;
+  function srand(s){ seed = s >>> 0; }
+  function rnd(){
+    seed = (seed + 0x6D2B79F5) >>> 0;
+    var t = seed;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  function pick(a){ return a[(rnd()*a.length)|0]; }
+
+  // ---------- News ----------
+  var CALM = [
+    ["📰","A quiet year","Nothing much happened, which no one thanks you for."],
+    ["🏗️","Cranes on the skyline","Construction orders picked up. The industry credits itself."],
+    ["🛒","Shoppers holding up","Retail volumes drifted higher. Economists disagree about why."],
+    ["✈️","Record summer bookings","Households spent on holidays rather than saving. Noted at the Bank."]
+  ];
+  var MINOR = [
+    ["⛽","Fuel duty row","Pump prices jumped and the papers found a haulier to quote."],
+    ["🚢","Port delays","Container backlogs pushed goods prices up for a few months."],
+    ["🌾","Poor harvest","Food price inflation ticked up. Not your fault, still your problem."]
+  ];
+  var MAJOR = [
+    ["🛢️","Oil spike","A supply disruption put crude up by a third. Prices followed."],
+    ["🏭","Manufacturing slump","Export orders collapsed. The industrial heartlands noticed first."],
+    ["💷","Sterling slides","The pound fell against the dollar and imported prices rose with it."]
+  ];
+  var CRISIS = [
+    ["💥","Energy crisis","Wholesale gas multiplied. Every household bill in the country moved."],
+    ["🦠","Public health emergency","Activity stopped for months. The bill arrived immediately."],
+    ["🏦","Banking scare","Credit froze. The Treasury guaranteed what it had to."]
+  ];
+
+  // ================= THE MODEL =================
+  var S;
+
+  function freshState(){
+    return {
+      year:0,
+      // Standing levels, £bn a year. Everything the player does is a CHANGE to
+      // these, and the change is what buys growth — the level is what you pay for.
+      taxLevel:0, vatLevel:0, corpLevel:0, dtsLevel:0, welfLevel:0, capLevel:0,
+      capLast:0, corpLast:0, capHist:[], corpHist:[],
+      ogap:0, scar:0,
+      infl:START.infl, exp:2.3, unemp:START.unemp, growth:START.growth,
+      rate:START.rate, gilt:START.gilt,
+      debt:DEBT0, debtRatio:START.debtRatio, effDebtRate:START.effDebtRate,
+      interest:START.interest, borrow:START.borrow, borrowExpected:START.borrow,
+      gdp:GDP0, lead:START.lead,
+      vatPulseLast:0, potBoost:0,
+      // The two hidden variables. Neither is ever shown until the epilogue.
+      multTrue: pick(MULT_DRAW),
+      prodTrue: 0,
+      prodOBR: PROD_OBR0,
+      score:0, hist:[], dots:[], log:[],
+      shocksHit:0, majorHits:0, crisisHits:0, shockCarry:0,
+      peakInfl:START.infl, maxDebt:START.debtRatio, minLead:START.lead,
+      giltSpikes:0, ruleMetYears:0, over:false
+    };
+  }
+
+  function newGame(sd){
+    srand(sd);
+    S = freshState();
+    // Productivity: mostly worse than the OBR thinks, because it mostly is —
+    // but not always, or the player would simply assume the markdown and the
+    // forecast would stop being a source of uncertainty at all.
+    S.prodTrue = rnd() < PROD_BAD_ODDS ? pick([0.5,0.7,0.9]) : pick([1.1,1.3]);
+    S.hist.push(snapshot());
+    return S;
+  }
+
+  function snapshot(){
+    return { growth:S.growth, infl:S.infl, unemp:S.unemp, debt:S.debtRatio,
+             lead:S.lead, rate:S.rate, gilt:S.gilt, borrow:S.borrow,
+             fcDebt:S.debtRatio, room:0 };
+  }
+
+  // The fiscal multiplier is the honest hidden variable. Serious economists put
+  // it anywhere between 0.4 and 1.5 for the same pound of the same spending, and
+  // the spread is not ignorance that better data would close — it depends on
+  // slack, on monetary offset, on how much leaks into imports. So the game draws
+  // a true value at the start and never shows it, exactly as the rate game hides
+  // the neutral rate. It is bigger in a slump: idle workers and idle capacity
+  // mean a pound of demand meets a supply response rather than a price response.
+  function multiplier(){
+    return S.multTrue * clamp(1 - MULT_SLACK * S.ogap, MULT_MIN, MULT_MAX);
+  }
+
+  // The rate of unemployment the economy settles at when output is at potential.
+  // It rises with accumulated scarring and never comes back down.
+  function natural(){ return NATURAL_BASE + S.scar; }
+
+  function stockAt(hist, y){
+    var t = 0;
+    for (var i=0;i<hist.length && i<=y;i++) t += hist[i];
+    return t;
+  }
+
+  // The Committee is no longer an opinion you can overrule. It is a reaction
+  // function, and it reacts to what you just did. It looks through only half of
+  // a VAT rise — the Bank's actual stated practice on indirect tax, and a
+  // genuine judgement call rather than a rule — so a Chancellor who raises VAT
+  // to fund a giveaway pays for it twice: once at the till, and once in the
+  // mortgage market.
+  function mpcRate(){
+    var seen = S.infl - MPC_VAT_LOOK * S.vatPulseLast;
+    var want = MPC_NEUTRAL + TAYLOR_PI*(seen - 2.0) + TAYLOR_Y*S.ogap;
+    return clamp(MPC_SMOOTH*S.rate + (1-MPC_SMOOTH)*want, 0, RATE_MAX);
+  }
+
+  // A five-year projection on the OBR's assumptions: policy held flat, gilts
+  // pinned at anchor, no bond panic, trend from the OBR's productivity estimate
+  // rather than the truth. Deliberately naive — it is a forecast, not the world,
+  // and the gap between the two is the whole game. Returns the debt ratio path.
+  function project(extraBorrow){
+    var debt = S.debt, ratio = S.debtRatio, gdp = S.gdp;
+    var eff = S.effDebtRate, gilt = S.rate + TERM_PREMIUM;
+    var infl = 2.0, path = [], borrows = [];
+    var taxL = S.taxLevel, vatL = S.vatLevel, corpL = S.corpLevel;
+    var dtsL = S.dtsLevel, welfL = S.welfLevel, capL = S.capLevel;
+    var trend = TREND_BASE * (S.prodOBR/1.0) + S.potBoost;
+    // The forecast runs to the end of the term, and never fewer than two years:
+    // the rule compares the last year with the one before it, so a projection
+    // made in the final Budget still needs a pair to compare.
+    var last = Math.max(YEARS, S.year + 2);
+    for (var y=S.year; y<last; y++){
+      var nom = trend + infl;
+      eff = (1-REPRICE)*eff + REPRICE*gilt;
+      var interest = debt * eff / 100;
+      // The welfare ratchet applies in the forecast too: it is automatic, so the
+      // OBR sees it coming even when the Chancellor has not.
+      welfL = welfL * (1 + infl/100);
+      var receipts = RECEIPTS0*(1 + nom/100) + taxL + vatL + corpL;
+      var spending = SPEND0*(1 + nom/100) + dtsL + welfL + capL + interest;
+      var borrow = spending - receipts + extraBorrow;
+      gdp = gdp * (1 + nom/100);
+      debt = debt + borrow;
+      ratio = 100 * debt / gdp;
+      path.push(ratio); borrows.push(borrow);
+    }
+    path.borrows = borrows;
+    return path;
+  }
+
+  // Headroom: the £bn of extra annual borrowing that would leave the debt ratio
+  // exactly flat in the final year. Found by bisection, which is only valid
+  // because the projection above is monotone in borrowing — it has the bond
+  // panic switched off, which is also the honest thing, since the OBR does not
+  // forecast a gilt crisis either.
+  function headroom(){
+    var lo = -80, hi = 80;
+    for (var k=0;k<30;k++){
+      var m = (lo+hi)/2;
+      var p = project(m);
+      if (p[p.length-1] <= p[p.length-2]) lo = m; else hi = m;
+    }
+    return lo;
+  }
+  function ruleMet(){
+    var p = project(0);
+    return p[p.length-1] <= p[p.length-2];
+  }
+  function finalDebtDelta(){
+    var p = project(0);
+    return p[p.length-1] - p[p.length-2];
+  }
+
+  // A Budget. `d` is six changes in £bn a year.
+  //
+  // The load-bearing idea in the whole model: the fiscal impulse is the CHANGE
+  // in the standing level, not the level. Raise day-to-day spending by £40bn and
+  // you get one good year; the next year that £40bn is baseline, the boost is
+  // gone, and the bill is permanent. This is why "borrow and spend" loses
+  // without any punitive fudge, and it is also just true — it is why "£X billion
+  // extra for the NHS" stops being growth after twelve months.
+  function budget(d){
+    var prevInfl = S.infl, prevUnemp = S.unemp, prevOgap = S.ogap;
+    var prevDebtRatio = S.debtRatio, prevGilt = S.gilt, prevScar = S.scar;
+    var prevScore = S.score;
+
+    // What the bond market had been told to expect for this year, taken from the
+    // pre-Budget forecast. It matters that this is the FORECAST and not last
+    // year's outturn: a rising interest bill that everyone could see coming is
+    // not a surprise, and should not move yields. Getting this wrong makes the
+    // market react to its own arithmetic and the debt path diverge on its own.
+    S.borrowExpected = project(0).borrows[0];
+
+    // Levels move first; the impulse is the change.
+    S.taxLevel += d.tax; S.vatLevel += d.vat; S.corpLevel += d.corp;
+    S.dtsLevel += d.dts; S.capLevel += d.cap;
+    // The welfare ratchet. Uprating is already automatic and inflation-indexed,
+    // so a discretionary decision sits on top of a base that has itself grown
+    // with prices — and next year's automatic uprating then applies to the
+    // higher base you just created. Cutting works the same way in reverse, which
+    // is why a real-terms freeze is the most powerful and least visible fiscal
+    // instrument in the British state.
+    S.welfLevel = S.welfLevel * (1 + prevInfl/100) + d.welf;
+
+    S.capHist.push(d.cap);
+    S.corpHist.push(S.corpLevel);
+
+    // ---- Shocks ----
+    var roll = rnd(), tier = 0, ev;
+    if (roll < 0.05)      tier = 3;
+    else if (roll < 0.16) tier = 2;
+    else if (roll < 0.36) tier = 1;
+    var shock = 0;
+    if (tier === 3){ ev = pick(CRISIS); shock = 2.8; S.crisisHits++; }
+    else if (tier === 2){ ev = pick(MAJOR); shock = 0.9; S.majorHits++; }
+    else if (tier === 1){ ev = pick(MINOR); shock = 0.35; }
+    else ev = pick(CALM);
+    if (tier) S.shocksHit++;
+    var carry = S.shockCarry;
+
+    // ---- Demand ----
+    // Half of capital spend lands as demand this year and half next: you cannot
+    // dig a tunnel in a fiscal year. Corporation tax enters demand weakly and a
+    // year late — firms do not cut investment plans the week of the Budget.
+    var imp = multiplier() * (
+          W_DTS  * d.dts
+        + W_WELF * d.welf
+        + W_CAP  * (0.5*d.cap + 0.5*S.capLast)
+        - W_TAX  * d.tax
+        - W_VAT  * d.vat
+        - W_CORP * S.corpLast
+      ) / GDP0 * 100;
+
+    // Two separate monetary channels. Bank Rate is the Bank's decision; the gilt
+    // yield is the market's, and mortgages and corporate credit price off the
+    // curve, not off Bank Rate. Keeping them apart is what lets the bond market
+    // hurt you even in a year the Bank does nothing.
+    var monDrag = RATE_TO_GAP * (S.rate - MPC_NEUTRAL)
+                + YIELD_TO_GAP * (S.gilt - (S.rate + TERM_PREMIUM));
+    S.ogap = OGAP_PERSIST*S.ogap + imp - monDrag - 0.35*Math.abs(carry) - (tier===3 ? 1.1 : 0);
+
+    // ---- Potential output ----
+    // Capital accumulates a stock of assets. Corporation tax accumulates a stock
+    // of foregone business investment, so what matters is not the rate in any
+    // one year but how long it has stood there — an integral, not a level. Both
+    // mature with a lag, which on a five-year term means most of the return, in
+    // either direction, lands under your successor.
+    S.potBoost = CAP_POT  * stockAt(S.capHist,  S.year - CAP_LAG)
+               + CORP_POT * stockAt(S.corpHist, S.year - CORP_LAG);
+    var trend = TREND_BASE * (S.prodTrue/1.0) + S.potBoost;
+
+    // ---- Prices ----
+    // VAT is arithmetic: put it up and the price on the shelf moves in the same
+    // month, then drops out of the twelve-month comparison a year later. Demand
+    // pressure is slow, works through the labour market, and arrives a year after
+    // the Budget that caused it. The Bank has to look through the first and not
+    // the second, which is why VAT is the lever that most reliably provokes it.
+    var vatPulse = VAT_CPI * d.vat;
+    S.infl = S.infl + vatPulse - S.vatPulseLast
+           + WELF_CPI * d.welf
+           + PHILLIPS * prevOgap
+           - ANCHOR * (S.infl - S.exp)
+           - RATE_TO_INFL * (S.rate - MPC_NEUTRAL)
+           + shock + carry;
+    S.vatPulseLast = vatPulse;
+    S.infl = clamp(S.infl, INFL_FLOOR, INFL_CEIL);
+
+    // Expectations chase what people actually see, faster the higher it runs.
+    var chase = 0.10 + 0.16 * clamp((S.infl - 5) / 10, 0, 1);
+    S.exp += chase * (S.infl - S.exp);
+    if (inBand(S.infl, INFL_BAND)) S.exp += 0.20 * (2.0 - S.exp);
+    S.exp = clamp(S.exp, -2, 18);
+
+    // ---- Jobs, and permanent damage ----
+    if (-S.ogap > SCAR_THRESHOLD) S.scar += SCAR_RATE * (-S.ogap - SCAR_THRESHOLD);
+    S.ogap = clamp(S.ogap, 2*(natural() - UNEMP_CEIL), 2*(natural() - UNEMP_FLOOR));
+    S.unemp = natural() - 0.5*S.ogap;
+    S.growth = trend + (S.ogap - prevOgap);
+
+    // ---- The Bank reacts ----
+    S.rate = mpcRate();
+
+    // ---- The books ----
+    var nomGrowth = S.growth + S.infl;
+    S.effDebtRate = (1-REPRICE)*S.effDebtRate
+                  + REPRICE*(S.gilt + ILG_SHARE*Math.max(0, S.infl-2)*0.6);
+    S.interest = S.debt * S.effDebtRate / 100;
+
+    // Receipts move with the cycle, hard: a 40% tax take with an elasticity
+    // above one is a leveraged bet on growth. Corporation tax receipts are the
+    // most cyclical line of the lot — profits are the residual after wages, so
+    // they swing several times as hard as the wage bill. Raising CT therefore
+    // does not only raise money, it raises the LEVERAGE of the whole revenue
+    // base on the cycle, so the next downturn costs the Treasury more than it
+    // otherwise would. Funding a giveaway out of companies is buying growth by
+    // shorting your own future forecast.
+    var cyc = (TAX_ELAST_BASE + CORP_CYC * S.corpLevel) * S.ogap;
+    // Inflation flatters the books first, through frozen thresholds dragging
+    // people into higher bands, and bills you the year after, through benefits
+    // and pensions uprated in arrears.
+    var receipts = RECEIPTS0*(1 + nomGrowth/100)
+                 + S.taxLevel + S.vatLevel + S.corpLevel
+                 + cyc + INFL_DRAG*(S.infl - 2);
+    var spending = SPEND0*(1 + nomGrowth/100)
+                 + S.dtsLevel + S.welfLevel + S.capLevel
+                 + S.interest + UPRATE*(prevInfl - 2);
+    var newBorrow = spending - receipts;
+
+    // ---- The bond market ----
+    // It does not price the level of borrowing. It prices the SURPRISE —
+    // borrowing above what it had been told to expect — and it prices it far
+    // harder when the debt ratio is already rising, because that is when it
+    // starts wondering whether anyone intends to stop.
+    var surprise = newBorrow - S.borrowExpected;
+    var panic = (S.debtRatio > prevDebtRatio && surprise > 0) ? BOND_PANIC : 1;
+    var anchor = S.rate + TERM_PREMIUM;
+    S.gilt = clamp(S.gilt + BOND_SURPRISE*surprise*panic - BOND_MEAN*(S.gilt - anchor), 1.0, 12);
+    if (S.gilt - prevGilt > 0.5) S.giltSpikes++;
+
+    S.borrow = newBorrow;
+    S.gdp = S.gdp * (1 + nomGrowth/100);
+    S.debt = S.debt + S.borrow;
+    S.debtRatio = 100 * S.debt / S.gdp;
+
+    // ---- The electorate ----
+    // Voters do not read the debt-to-GDP ratio. They notice whether prices are
+    // rising faster than pay, whether anyone they know lost a job, and how much
+    // tax they pay. Borrowing is invisible to them, which is the trap: the thing
+    // that destroys you in year five is the thing nobody punishes you for in
+    // year one. Welfare is asymmetric — a cut is remembered and a rise is
+    // banked, because a cut produces named victims on the news and a rise
+    // produces nobody.
+    // The standing position: where the electorate would settle given the tax and
+    // spending levels you have left in place. This is a LEVEL, so it sets what
+    // the lead reverts towards — it is not added again every year. A standing
+    // tax rise costs you a fixed amount of support and then stops costing more;
+    // it does not grind you down for ever.
+    var welfPoll = (S.welfLevel >= 0 ? POLL_WELF : POLL_WELF_CUT) * S.welfLevel;
+    var standing = (POLL_SPEND*S.dtsLevel + welfPoll
+                  - POLL_TAX*S.taxLevel - POLL_VAT*S.vatLevel
+                  - POLL_CORP*S.corpLevel) / GDP0 * 100;
+    // Flow effects, which are felt in the year they happen: real pay, jobs, and
+    // the mortgage rate.
+    var realPay = S.growth - Math.max(0, S.infl - 2.0);
+    S.lead = S.lead + POLL_MEAN*((POLL_BASE + standing) - S.lead)
+           + POLL_PAY*realPay
+           - POLL_UNEMP*(S.unemp - prevUnemp)
+           - POLL_RATE*Math.max(0, S.rate - START.rate);
+    S.lead = clamp(S.lead, -40, 30);
+
+    // ---- Carry, bookkeeping ----
+    S.shockCarry = tier === 3 ? 1.2 : (tier === 2 ? 0.25 : (tier === 1 ? 0.1 : carry*0.5));
+    if (Math.abs(S.shockCarry) < 0.03) S.shockCarry = 0;
+    S.capLast = d.cap; S.corpLast = S.corpLevel;
+    if (S.infl > S.peakInfl) S.peakInfl = S.infl;
+    if (S.debtRatio > S.maxDebt) S.maxDebt = S.debtRatio;
+    if (S.lead < S.minLead) S.minLead = S.lead;
+
+    // ---- The forecast learns ----
+    // One number does all the work, and it is marked to truth a little at a
+    // time. Nothing the player does moves it.
+    var prevOBR = S.prodOBR;
+    S.prodOBR += OBR_LEARN * (S.prodTrue - S.prodOBR);
+    S.year++;
+
+    // ---- Score ----
+    var pts = 0;
+    pts += 4 * clamp(S.growth - TREND_BASE, 0, 1.5);
+    if (inBand(S.infl, INFL_BAND)) pts += 3; else pts -= 4 * outBy(S.infl, INFL_BAND);
+    if (S.unemp < prevUnemp) pts += 2;
+    // Mass unemployment is not merely the absence of a bonus. A Chancellor who
+    // runs the economy cold for five years has done something, and the score has
+    // to say so, or austerity looks like prudence on the scoreboard.
+    pts -= 3 * outBy(S.unemp, { lo:0, hi:5.5 });
+    if (S.debtRatio < prevDebtRatio) pts += 3;
+    var room = headroom();
+    if (room > 5) pts += 2;
+    if (S.gilt - prevGilt > 0.5) pts -= 6;
+    // Scarring is permanent, so it is priced as permanent. This is the single
+    // heaviest per-year term in the game, and deliberately: output lost this way
+    // never comes back, and a scoring rule that treated it as a rounding error
+    // would be teaching the wrong lesson.
+    pts -= 45 * (S.scar - prevScar);
+    if (ruleMet()) S.ruleMetYears++;
+    S.score += pts;
+
+    S.dots.push(pts >= 4 ? "hit" : "miss");
+    var snap = snapshot();
+    snap.room = room;
+    snap.fcDebt = S.debtRatio + finalDebtDelta();
+    S.hist.push(snap);
+    S.log.push({ ev:ev, tier:tier, pts:pts, room:room, obrFrom:prevOBR, obrTo:S.prodOBR,
+                 rateFrom:0, giltFrom:prevGilt, delta:Math.round(S.score - prevScore) });
+    return S.log[S.log.length-1];
+  }
+
+  // ---- The election, and the epilogue ----
+  function election(){
+    var swing = (rnd() + rnd() + rnd() - 1.5) * SWING_SD;   // roughly normal
+    return { lead: S.lead, result: S.lead + swing, won: (S.lead + swing) > 0, swing: swing };
+  }
+  // What the economy looks like in 2036 relative to doing nothing: the capital
+  // that matured after you left, less the business investment the corporation
+  // tax never got. The point of showing it is that neither is visible in the
+  // five years you were judged on.
+  // Expressed as a percentage of GDP: the annual boost to trend growth that the
+  // matured stock is worth, compounded over the five years after you leave.
+  function legacy(){
+    return (CAP_POT*stockAt(S.capHist, YEARS) + CORP_POT*stockAt(S.corpHist, YEARS)) * 5;
+  }
+
+  function finalScore(el){
+    var s = S.score;
+    var rule = ruleMet();
+    s += rule ? 25 : -25;
+    s += el.won ? 35 : -30;
+    if (el.won) s += 10 * clamp(el.result, 0, 4)/4;
+    // The legacy term. Weighted heavily because it is the only part of the score
+    // that reflects what you did to the economy rather than to the books, and it
+    // is the only part no voter and no forecast ever sees.
+    s += 18 * legacy();
+    return s;
+  }
+
+  // ================= SWEEP =================
+  // Par is measured, not guessed. `?sweep=1` runs the strategies headless and
+  // dumps the distributions to the console and to window.SWEEP, which is how the
+  // acceptance test below is checked. Nothing in here touches the DOM.
+  var STRATS = {
+    passive:   { tax:0,  vat:0, corp:0,  dts:0,   welf:0,   cap:0 },
+    // Funded, capital-tilted, current spending held flat: the package the model
+    // is meant to reward. It is not generous and it is not austere.
+    steady:    { tax:10, vat:0, corp:2,  dts:0,   welf:2,   cap:6 },
+    aggressive:{ tax:0,  vat:0, corp:0,  dts:40,  welf:20,  cap:20 },
+    austerity: { tax:15, vat:5, corp:0,  dts:-20, welf:-10, cap:-5 },
+    cheap:     { tax:0,  vat:0, corp:15, dts:0,   welf:20,  cap:0 },
+    supply:    { tax:10, vat:0, corp:-8, dts:-10, welf:-8,  cap:20 }
+  };
+  function runStrat(d, sd){
+    newGame(sd);
+    var mid = 0;
+    for (var y=0;y<YEARS;y++){
+      budget(d);
+      if (y === 2) mid = S.score;
+    }
+    var el = election();
+    var sc = finalScore(el), p = par();
+    return { score: sc, par: p, beat: sc >= p, mid: mid, won: el.won, rule: ruleMet(),
+             debt: S.debtRatio, gilt: S.gilt, infl: S.infl, unemp: S.unemp,
+             lead: S.lead, legacy: legacy(), scar: S.scar };
+  }
+  function median(a){ var b = a.slice().sort(function(x,y){return x-y;}); return b[(b.length/2)|0]; }
+  function sweep(n){
+    n = n || 2000;
+    var out = {};
+    Object.keys(STRATS).forEach(function(k){
+      var rows = [];
+      for (var i=0;i<n;i++) rows.push(runStrat(STRATS[k], i+1));
+      out[k] = {
+        n: n,
+        score: median(rows.map(function(r){ return r.score; })),
+        mid:   median(rows.map(function(r){ return r.mid; })),
+        rule:  rows.filter(function(r){ return r.rule; }).length / n,
+        won:   rows.filter(function(r){ return r.won; }).length / n,
+        debt:  median(rows.map(function(r){ return r.debt; })),
+        gilt:  median(rows.map(function(r){ return r.gilt; })),
+        infl:  median(rows.map(function(r){ return r.infl; })),
+        unemp: median(rows.map(function(r){ return r.unemp; })),
+        lead:  median(rows.map(function(r){ return r.lead; })),
+        legacy:median(rows.map(function(r){ return r.legacy; })),
+        raw: rows
+      };
+    });
+    return out;
+  }
+  // A year-by-year trace of one run, for calibration. Reports the internals the
+  // player never sees, which is exactly what has to be checked.
+  function trace(d, sd){
+    newGame(sd);
+    var rows = [{ y:START_YEAR-1, room:headroom(), rule:ruleMet(), borrow:S.borrow,
+                  debt:S.debtRatio, gilt:S.gilt, rate:S.rate, infl:S.infl,
+                  unemp:S.unemp, growth:S.growth, lead:S.lead, interest:S.interest,
+                  ogap:S.ogap, scar:S.scar, score:0 }];
+    for (var y=0;y<YEARS;y++){
+      budget(d);
+      rows.push({ y:START_YEAR+y, room:headroom(), rule:ruleMet(), borrow:S.borrow,
+                  debt:S.debtRatio, gilt:S.gilt, rate:S.rate, infl:S.infl,
+                  unemp:S.unemp, growth:S.growth, lead:S.lead, interest:S.interest,
+                  ogap:S.ogap, scar:S.scar, score:S.score });
+    }
+    var el = election();
+    return { rows:rows, final:finalScore(el), won:el.won, legacy:legacy(),
+             multTrue:S.multTrue, prodTrue:S.prodTrue };
+  }
+  window.SWEEP = sweep;
+  window.RUNSTRAT = runStrat;
+  window.TRACE = trace;
+  window.STRATS = STRATS;
+
+  if (/[?&]sweep=1/.test(location.search)){
+    var r = sweep(400);
+    var tbl = {};
+    Object.keys(r).forEach(function(k){
+      tbl[k] = { score:Math.round(r[k].score), mid:Math.round(r[k].mid),
+                 rule:(r[k].rule*100).toFixed(0)+"%", won:(r[k].won*100).toFixed(0)+"%",
+                 debt:r[k].debt.toFixed(1), gilt:r[k].gilt.toFixed(2),
+                 infl:r[k].infl.toFixed(1), unemp:r[k].unemp.toFixed(1),
+                 lead:r[k].lead.toFixed(1), legacy:r[k].legacy.toFixed(2) };
+    });
+    window.SWEEP_RESULT = tbl;
+    if (window.console) console.table(tbl);
+  }
+
+  // ================= UI =================
+  var career = { games:0, best:null, medals:[] };
+  try { var c = JSON.parse(localStorage.getItem(STORE)); if (c) career = c; } catch(e){}
+  if (!Array.isArray(career.medals)) career.medals = [];
+  function saveCareer(){ try { localStorage.setItem(STORE, JSON.stringify(career)); } catch(e){} }
+
+  var MEDALS = [
+    { id:"rule",  emoji:"📐", name:"Rule Keeper",    hint:"Meet the fiscal rule in all five years",
+      test:function(S){ return S.ruleMetYears === YEARS; } },
+    { id:"land",  emoji:"🎯", name:"Soft Landing",   hint:"End on target for inflation with growth above trend",
+      test:function(S){ return inBand(S.infl, INFL_BAND) && S.growth > TREND_BASE; } },
+    { id:"win",   emoji:"🗳️", name:"Returned",       hint:"Win the election",
+      test:function(S,p,el){ return el.won; } },
+    { id:"build", emoji:"🏗️", name:"The Long Game",  hint:"Leave the economy bigger in 2036 than you found it",
+      test:function(S){ return legacy() > 0.4; } },
+    { id:"calm",  emoji:"🕊️", name:"Steady Books",   hint:"Never let gilt yields spike",
+      test:function(S){ return S.giltSpikes === 0; } },
+    { id:"crisis",emoji:"🔥", name:"Crisis Budget",  hint:"Beat par in a term with a crisis in it",
+      test:function(S,p){ return S.crisisHits > 0 && S.finalScore >= p; } },
+    { id:"scar",  emoji:"🩹", name:"Lasting Damage", hint:"Leave the jobless floor permanently higher",
+      test:function(S){ return S.scar >= 0.3; } },
+    { id:"five",  emoji:"🏛️", name:"Treasury Hand",  hint:"Serve five full terms",
+      test:function(){ return career.games >= 5; } }
+  ];
+
+  var pending = { tax:0, vat:0, corp:0, dts:0, welf:0, cap:0 };
+  var sideNow = "tax", chartNow = 0;
+  var CHARTS = [
+    { key:"growth", name:"Growth",   colour:"#3DDC97", zero:true },
+    { key:"debt",   name:"Debt/GDP", colour:"#B980F0", zero:false },
+    { key:"lead",   name:"Poll lead",colour:"#3DDC97", zero:true }
+  ];
+
+  function show(id){
+    ["intro","forecast","budget","year","end"].forEach(function(s){
+      $(s).classList.toggle("hide", s !== id);
+    });
+  }
+
+  // ---------- Canvas ----------
+  var REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function fit(cv){
+    var ctx = cv.getContext("2d");
+    var dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (!w) return null;
+    cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+    return { ctx:ctx, w:w, h:h };
+  }
+  // Charts hold a comfortable default range and stretch only when the economy
+  // escapes it, so a crisis visibly zooms the axes out.
+  function scaleFor(vals, baseLo, baseHi){
+    var lo = baseLo, hi = baseHi;
+    vals.forEach(function(v){
+      if (v < lo) lo = Math.floor(v) - 1;
+      if (v > hi) hi = Math.ceil(v) + 1;
+    });
+    return { lo:lo, hi:hi };
+  }
+  function drawSpark(){
+    var cv = $("spark"), d = fit(cv); if (!d) return;
+    var ctx = d.ctx, w = d.w, h = d.h;
+    var C = CHARTS[chartNow];
+    var vals = S.hist.map(function(p){ return p[C.key]; });
+    var base = C.key === "debt" ? [92, 100] : (C.key === "lead" ? [-20, 10] : [-1, 4]);
+    var sc = scaleFor(vals, base[0], base[1]);
+    var Y = function(v){ return h - ((clamp(v,sc.lo,sc.hi)-sc.lo)/(sc.hi-sc.lo))*h; };
+    var X = function(i){ return (i/YEARS) * w; };
+
+    if (C.zero && sc.lo < 0 && sc.hi > 0){
+      var z = Y(0);
+      ctx.beginPath(); ctx.moveTo(0,z); ctx.lineTo(w,z);
+      ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.lineWidth = 1; ctx.stroke();
+    }
+    var pts = vals.map(function(v,i){ return { x:X(i), y:Y(v), v:v }; });
+    var last = pts[pts.length-1];
+    if (pts.length > 1){
+      var g = ctx.createLinearGradient(0,0,0,h);
+      g.addColorStop(0, C.colour + "44"); g.addColorStop(1, C.colour + "00");
+      ctx.beginPath(); ctx.moveTo(pts[0].x, h);
+      pts.forEach(function(p){ ctx.lineTo(p.x, p.y); });
+      ctx.lineTo(last.x, h); ctx.closePath();
+      ctx.fillStyle = g; ctx.fill();
+      ctx.beginPath();
+      pts.forEach(function(p,i){ i ? ctx.lineTo(p.x,p.y) : ctx.moveTo(p.x,p.y); });
+      ctx.strokeStyle = C.colour; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.lineCap = "round";
+      ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(last.x, last.y, 6, 0, Math.PI*2);
+    ctx.fillStyle = C.colour + "33"; ctx.fill();
+    ctx.beginPath(); ctx.arc(last.x, last.y, 3, 0, Math.PI*2);
+    ctx.fillStyle = C.colour; ctx.fill();
+  }
+
+  // The results chart. Three series plus the dashed line showing what the OBR
+  // was forecasting for the final debt ratio at each point — which is the joke,
+  // and the argument, of the whole game.
+  function drawStory(){
+    var d = fit($("story")); if (!d) return;
+    var ctx = d.ctx, w = d.w, h = d.h, pad = 4;
+    var n = S.hist.length;
+    var X = function(i){ return pad + (i/(n-1)) * (w - pad*2); };
+    function series(key, colour, dash){
+      var vals = S.hist.map(function(p){ return p[key]; });
+      var sc = scaleFor(vals, Math.min.apply(null,vals)-1, Math.max.apply(null,vals)+1);
+      var Y = function(v){ return h-pad - ((v-sc.lo)/(sc.hi-sc.lo))*(h-pad*2); };
+      ctx.beginPath();
+      vals.forEach(function(v,i){ i ? ctx.lineTo(X(i),Y(v)) : ctx.moveTo(X(i),Y(v)); });
+      ctx.setLineDash(dash ? [4,4] : []);
+      ctx.strokeStyle = colour; ctx.lineWidth = dash ? 1.5 : 2;
+      ctx.lineJoin = "round"; ctx.lineCap = "round"; ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    series("growth", "#3DDC97", false);
+    series("debt",   "#B980F0", false);
+    series("lead",   "#4CC9F0", false);
+    series("fcDebt", "#8A97AE", true);
+  }
+
+  // ---------- Painting ----------
+  function paintHeadroom(room, fillEl, textEl){
+    var mag = clamp(Math.abs(room)/40, 0, 1) * 50;
+    textEl.textContent = bn(room);
+    textEl.style.color = room >= 0 ? "var(--good)" : "var(--bad)";
+    if (room >= 0){ fillEl.style.left = (50-mag)+"%"; fillEl.style.width = mag+"%";
+                    fillEl.style.background = "var(--good)"; }
+    else          { fillEl.style.left = "50%"; fillEl.style.width = mag+"%";
+                    fillEl.style.background = "var(--bad)"; }
+  }
+
+  function arrow(el, now, before, goodIsDown){
+    var up = now > before + 0.05, dn = now < before - 0.05;
+    el.textContent = up ? "↑" : dn ? "↓" : "→";
+    el.className = "arrow " + (up ? (goodIsDown?"up":"down") : dn ? (goodIsDown?"down":"up") : "flat");
+  }
+
+  function paintBudget(){
+    var p = S.hist[S.hist.length-1], q = S.hist[S.hist.length-2] || p;
+    $("gVal").textContent = p.growth.toFixed(1);
+    $("iVal").textContent = p.infl.toFixed(1);
+    $("dVal").textContent = p.debt.toFixed(1);
+    arrow($("gArr"), p.growth, q.growth, false);
+    arrow($("iArr"), p.infl, q.infl, true);
+    arrow($("dArr"), p.debt, q.debt, true);
+    $("tileI").classList.toggle("out", !inBand(p.infl, INFL_BAND));
+    $("chName").textContent = CHARTS[chartNow].name;
+    $("chSwatch").style.background = CHARTS[chartNow].colour;
+    drawSpark();
+    paintLevers();
+    recompute();
+  }
+
+  function paintLevers(){
+    var box = $("levers");
+    box.innerHTML = LEVERS.filter(function(L){ return L.side === sideNow; }).map(function(L){
+      return '<div class="lev '+L.side+'" data-k="'+L.k+'">'
+        + '<span class="nm">'+L.name+'</span>'
+        + '<button class="step" data-k="'+L.k+'" data-d="-1" aria-label="Less">−</button>'
+        + '<input type="range" id="lv_'+L.k+'" min="'+L.lo+'" max="'+L.hi+'" step="'+L.step+'" '
+        + 'value="'+pending[L.k]+'" aria-label="'+L.name+'">'
+        + '<button class="step" data-k="'+L.k+'" data-d="1" aria-label="More">+</button>'
+        + '<span class="amt'+(pending[L.k]?"":" z")+'" id="am_'+L.k+'">'+sbn(pending[L.k])+'</span>'
+        + '</div>';
+    }).join("");
+    box.querySelectorAll("input[type=range]").forEach(function(el){
+      el.addEventListener("input", function(){
+        pending[el.id.slice(3)] = parseFloat(el.value);
+        recompute();
+      });
+    });
+    box.querySelectorAll(".step").forEach(function(b){
+      b.addEventListener("click", function(){
+        var L = LEVERS.filter(function(x){ return x.k === b.dataset.k; })[0];
+        pending[L.k] = clamp(pending[L.k] + parseFloat(b.dataset.d)*L.step, L.lo, L.hi);
+        $("lv_"+L.k).value = pending[L.k];
+        recompute();
+      });
+    });
+    // The badge on the tab you are not looking at, so nobody delivers a Budget
+    // having forgotten they moved something on the other side.
+    var taxMoved = pending.tax || pending.vat || pending.corp;
+    var spMoved  = pending.dts || pending.welf || pending.cap;
+    $("bTax").classList.toggle("on", !!taxMoved && sideNow !== "tax");
+    $("bSpend").classList.toggle("on", !!spMoved && sideNow !== "spend");
+  }
+
+  // Live arithmetic as you drag. Computed on the OBR's assumptions, which is the
+  // point: this is the forecast, not the truth, and next year it will have been
+  // wrong. Rather than re-running the whole model, it applies the Budget to a
+  // shadow copy of the standing levels and re-runs the projection.
+  function recompute(){
+    LEVERS.forEach(function(L){
+      var el = $("am_"+L.k);
+      if (el){ el.textContent = sbn(pending[L.k]); el.classList.toggle("z", !pending[L.k]); }
+    });
+    var save = { tax:S.taxLevel, vat:S.vatLevel, corp:S.corpLevel,
+                 dts:S.dtsLevel, welf:S.welfLevel, cap:S.capLevel };
+    S.taxLevel += pending.tax; S.vatLevel += pending.vat; S.corpLevel += pending.corp;
+    S.dtsLevel += pending.dts; S.welfLevel += pending.welf; S.capLevel += pending.cap;
+    var room = headroom(), met = ruleMet(), path = project(0);
+    var borrow = S.borrow
+      + (pending.dts + pending.welf + pending.cap)
+      - (pending.tax + pending.vat + pending.corp);
+    S.taxLevel = save.tax; S.vatLevel = save.vat; S.corpLevel = save.corp;
+    S.dtsLevel = save.dts; S.welfLevel = save.welf; S.capLevel = save.cap;
+
+    $("sBorrow").textContent = bn(borrow);
+    $("sDebt").textContent = path.length ? path[path.length-1].toFixed(1) + "%" : "—";
+    $("sRule").textContent = met ? "MET" : "MISSED";
+    $("sRuleBox").className = "sum " + (met ? "ok" : "no");
+    paintHeadroom(room, $("bFill"), $("bRoom"));
+    var taxMoved = pending.tax || pending.vat || pending.corp;
+    var spMoved  = pending.dts || pending.welf || pending.cap;
+    $("bTax").classList.toggle("on", !!taxMoved && sideNow !== "tax");
+    $("bSpend").classList.toggle("on", !!spMoved && sideNow !== "spend");
+  }
+
+  function paintDots(){
+    $("dots").innerHTML = "";
+    for (var i=0;i<YEARS;i++){
+      var d = document.createElement("span");
+      d.className = "dot " + (S.dots[i] || (i === S.year ? "now" : ""));
+      $("dots").appendChild(d);
+    }
+  }
+
+  function paintHUD(){
+    $("yName").textContent = "Budget " + (START_YEAR + S.year);
+    $("yNum").textContent = "Year " + Math.min(S.year+1, YEARS) + " of " + YEARS;
+    $("score").textContent = Math.round(S.score);
+    paintDots();
+  }
+
+  // ---------- Screen A ----------
+  function showForecast(){
+    paintHUD();
+    var room = headroom();
+    var prev = S.year === 0 ? PROD_OBR0 : S.log[S.log.length-1].obrTo;
+    var prevRoom = S.year === 0 ? room : S.hist[S.hist.length-1].room;
+
+    if (S.year === 0){
+      $("fcEmoji").textContent = "📊";
+      $("fcTitle").textContent = "Your first forecast";
+      $("fcText").innerHTML = "The OBR puts trend productivity growth at "
+        + PROD_OBR0.toFixed(2) + "%. Everything you are about to be judged against "
+        + "rests on that number. It is an estimate, and estimates get revised.";
+      $("fcEvent").className = "event";
+    } else {
+      // The revision lands BEFORE the sliders open, every year, so the player
+      // makes their decision inside the new reality rather than being told
+      // afterwards that the old one had moved.
+      var down = S.prodOBR < prev - 0.005;
+      $("fcEmoji").textContent = down ? "📉" : (S.prodOBR > prev + 0.005 ? "📈" : "📊");
+      $("fcTitle").textContent = down ? "The forecast has moved" : "The forecast holds";
+      $("fcText").innerHTML = down
+        ? "The OBR has revised trend productivity growth down from " + prev.toFixed(2)
+          + "% to " + S.prodOBR.toFixed(2) + "%. <b>Nothing you did caused this.</b> "
+          + "Headroom against your fiscal rule: " + bn(prevRoom) + " → " + bn(room) + "."
+        : "The OBR has left trend productivity growth at about " + S.prodOBR.toFixed(2)
+          + "%. Headroom against your fiscal rule: " + bn(room) + ".";
+      $("fcEvent").className = "event" + (down && room < 0 ? " bad" : down ? " warn" : "");
+    }
+    paintHeadroom(prevRoom, $("fcFill"), $("fcRoom"));
+    show("forecast");
+    // Animate to the new value, so the headroom is visibly taken away rather
+    // than simply being smaller when you arrive.
+    setTimeout(function(){ paintHeadroom(room, $("fcFill"), $("fcRoom")); }, REDUCED ? 0 : 420);
+  }
+
+  // ---------- Screen C ----------
+  function showYear(r){
+    paintHUD();
+    $("yrEmoji").textContent = r.ev[0];
+    $("yrTitle").textContent = r.ev[1];
+    $("yrText").textContent = r.ev[2];
+    $("yrEvent").className = "event" + (r.tier === 3 ? " bad" : r.tier === 2 ? " warn" : "");
+
+    var dr = S.rate - (S.hist[S.hist.length-2] || S.hist[0]).rate;
+    $("mpcTally").textContent = S.rate.toFixed(2) + "%";
+    $("mpcRow").className = "vote" + (dr > 0.1 ? " lost" : "");
+    $("mpcText").textContent = dr > 0.1
+      ? "The Bank raised Bank Rate to " + S.rate.toFixed(2) + "%, citing the fiscal impulse."
+      : dr < -0.1
+        ? "The Bank cut Bank Rate to " + S.rate.toFixed(2) + "%. Slack in the economy did that, not you."
+        : "The Bank held Bank Rate at " + S.rate.toFixed(2) + "%.";
+
+    var dg = S.gilt - r.giltFrom;
+    $("giltTally").textContent = S.gilt.toFixed(2) + "%";
+    $("giltRow").className = "vote" + (dg > 0.5 ? " lost" : "");
+    $("giltText").textContent = dg > 0.5
+      ? "Gilt yields jumped. The market priced borrowing it had not been told about."
+      : dg > 0.1 ? "Gilt yields drifted up." : "The gilt market barely moved.";
+
+    var prev = S.hist[S.hist.length-2] || S.hist[0], now = S.hist[S.hist.length-1];
+    var chips = [
+      ["Growth", now.growth.toFixed(1)+"%", now.growth >= prev.growth],
+      ["CPI", now.infl.toFixed(1)+"%", inBand(now.infl, INFL_BAND)],
+      ["Jobless", now.unemp.toFixed(1)+"%", now.unemp <= prev.unemp],
+      ["Poll lead", (now.lead>0?"+":"") + now.lead.toFixed(1), now.lead >= prev.lead]
+    ];
+    $("deltas").innerHTML = chips.map(function(c){
+      return '<div class="tile"><div class="lbl">'+c[0]+'</div>'
+           + '<div class="big" style="font-size:21px"><span class="'+(c[2]?"down":"up")+'">'
+           + c[1] + '</span></div></div>';
+    }).join("");
+    show("year");
+  }
+
+  // ---------- End ----------
+  function diagnose(el){
+    if (S.scar >= 0.3) return ["You left scars",
+      "The slump ran deep enough and long enough that " + S.scar.toFixed(1) + "pp of it never came back. "
+      + "Skills go stale, people leave the workforce, and the jobless floor rises permanently. "
+      + "Output lost this way is not recovered by spending later."];
+    if (S.giltSpikes >= 2) return ["The market stopped believing you",
+      "Gilt yields spiked in " + S.giltSpikes + " separate years. The bond market does not price how much "
+      + "you borrow, it prices how much more than expected — and once the debt ratio is rising it "
+      + "charges you double for the surprise."];
+    if (S.maxDebt > START.debtRatio + 6) return ["The debt ran away",
+      "Debt peaked at " + S.maxDebt.toFixed(1) + "% of GDP. Once the average interest rate on the stock "
+      + "exceeds nominal growth, the ratio climbs even with the budget balanced. The denominator is "
+      + "half the argument."];
+    if (S.peakInfl > 5) return ["You fed the fire",
+      "Inflation peaked at " + f1(S.peakInfl) + ". A loosening into an economy with no slack does not buy "
+      + "output, it buys prices — and then the Bank takes the output back anyway."];
+    if (legacy() < -0.2) return ["You taxed the future",
+      "The economy is smaller in 2036 than it would have been. Corporation tax raised money without "
+      + "costing a vote, and paid for it in business investment that nobody will ever attribute to you."];
+    if (!el.won && S.ruleMetYears === YEARS) return ["Fiscally sound, politically finished",
+      "You met the rule every single year and still lost. The books are not what people vote on — "
+      + "real pay is, and there was not enough of it."];
+    if (el.won && ruleMet()) return ["A good term",
+      "Growth without a bond crisis, the rule met, and returned to office. Now try it with a worse "
+      + "productivity draw."];
+    return ["A term of two halves",
+      "Nothing ran away from you, but nothing settled either. Smaller, funded, earlier moves tend to "
+      + "beat large corrections."];
+  }
+
+  var shareText = "";
+  function buildShare(medal, rating, el){
+    var sq = S.dots.map(function(d){ return d === "hit" ? "🟩" : "🟥"; }).join("");
+    var lines = [
+      "🏛️ Red Box — Budget 2026–2031",
+      sq,
+      medal + " " + rating,
+      "Debt " + S.debtRatio.toFixed(1) + "% · CPI " + f1(S.infl) + " · " + (el.won ? "Won" : "Lost") + " the election",
+      "Score " + Math.round(S.finalScore) + " (par " + Math.round(S.par) + ")",
+      "holdorhike.com/chancellor.html"
+    ];
+    shareText = lines.join("\n");
+    $("shareCard").textContent = shareText;
+  }
+
+  function finish(){
+    S.over = true;
+    var el = election();
+    var prevBest = career.best;
+    S.finalScore = finalScore(el);
+    var rule = ruleMet();
+    var leg = legacy();
+    var P = par();
+    S.par = P;
+
+    var lines = [
+      ["Years the rule was met", S.ruleMetYears + " of " + YEARS, S.ruleMetYears === YEARS ? true : null],
+      ["Debt in 2031", S.debtRatio.toFixed(1) + "%", S.debtRatio < START.debtRatio],
+      ["Fiscal rule", rule ? "met" : "missed", rule],
+      ["Inflation at the election", f1(S.infl), inBand(S.infl, INFL_BAND)],
+      ["Unemployment", f1(S.unemp), S.unemp <= START.unemp],
+      ["Peak gilt yield", S.gilt.toFixed(2) + "%", S.giltSpikes === 0],
+      ["Shocks weathered", S.shocksHit + (S.crisisHits ? " · " + S.crisisHits + " crisis" : ""), null]
+    ];
+    if (S.scar >= 0.05) lines.push(["Permanent damage to the jobless floor", "+" + S.scar.toFixed(1) + "pp", false]);
+    lines.push(["The economy in 2036, versus doing nothing",
+                (leg>0?"+":"") + leg.toFixed(2) + "%", leg > 0]);
+    lines.push(["Poll lead at the election", (S.lead>0?"+":"") + S.lead.toFixed(1), S.lead > 0]);
+    lines.push(["The swing on the night", (el.swing>0?"+":"") + el.swing.toFixed(1), el.swing > 0]);
+    lines.push([S.crisisHits ? "Par for a term this rough" : "Par for the term",
+                String(Math.round(P)), null]);
+
+    $("lines").innerHTML = lines.map(function(l){
+      var c = l[2]===null ? "" : (l[2] ? "pos" : "neg");
+      return '<div class="ln"><span>'+l[0]+'</span><span class="v '+c+'">'+l[1]+'</span></div>';
+    }).join("") + '<div class="ln total"><span>Final score</span><span class="v">'
+      + Math.round(S.finalScore) + '</span></div>';
+
+    var s = S.finalScore, medal, rating, say;
+    if (el.won && s >= P + 25){ medal="🎖️"; rating="A great Chancellor";
+      say="Returned with a majority, the rule met, and an economy still growing in 2036."; }
+    else if (el.won){ medal="🏅"; rating="Returned to office";
+      say="You won. Debt " + S.debtRatio.toFixed(1) + "% of GDP, CPI " + f1(S.infl) + "."; }
+    else if (s >= P){ medal="🤝"; rating="Sound money, lost the country";
+      say="The books hold up. The electorate did not agree it was worth it."; }
+    else if (s >= P - 45){ medal="📉"; rating="Out at the election";
+      say="Debt " + S.debtRatio.toFixed(1) + "%, CPI " + f1(S.infl) + ", and a swing against you."; }
+    else { medal="💥"; rating="A byword for mismanagement";
+      say="Gilt yields at " + S.gilt.toFixed(2) + "% and the rule in ruins. They will teach this."; }
+    $("medal").textContent = medal; $("rating").textContent = rating; $("say").textContent = say;
+
+    // The reveal. The hidden variables are shown only now, which is the only
+    // honest moment to show them.
+    $("truth").innerHTML = "<b>What was actually true</b><span>Trend productivity growth was "
+      + S.prodTrue.toFixed(2) + "% all along — the OBR opened at " + PROD_OBR0.toFixed(2)
+      + "% and finished at " + S.prodOBR.toFixed(2) + "%. The fiscal multiplier was "
+      + S.multTrue.toFixed(2) + ": every pound you spent bought " + S.multTrue.toFixed(2)
+      + " pounds of output before slack was taken into account. Neither number was knowable "
+      + "at the time, by you or by anyone else.</span>";
+
+    var dg = diagnose(el);
+    $("diag").innerHTML = '<b>' + dg[0] + '</b><span>' + dg[1] + '</span>';
+
+    var beat = prevBest !== null && S.finalScore > prevBest;
+    if (beat) $("best").innerHTML = '<span class="e">🏆</span><span><b>New personal best</b>'
+      + '<span>' + Math.round(S.finalScore) + ' points, beating ' + prevBest + '.</span></span>';
+    else if (prevBest !== null) $("best").innerHTML = '<span class="e">🎯</span><span><b>Your best is '
+      + prevBest + '</b><span>This term: ' + Math.round(S.finalScore) + '.</span></span>';
+    $("best").className = "nm" + (prevBest === null ? " hide" : (beat ? "" : " quiet"));
+
+    career.games++;
+    if (career.best === null || S.finalScore > career.best) career.best = Math.round(S.finalScore);
+    var earned = [];
+    MEDALS.forEach(function(m){
+      if (career.medals.indexOf(m.id) === -1 && m.test(S, P, el)){
+        career.medals.push(m.id); earned.push(m);
+      }
+    });
+    saveCareer();
+    $("newMedals").innerHTML = earned.map(function(m){
+      return '<div class="nm"><span class="e">'+m.emoji+'</span><span><b>'+m.name+'</b>'
+           + '<span>'+m.hint+'</span></span><span class="tag">NEW</span></div>';
+    }).join("");
+    $("newMedals").classList.toggle("hide", earned.length === 0);
+
+    $("yName").textContent = "The election";
+    $("yNum").textContent = el.won ? "Returned to office" : "Out of office";
+    track("term_complete", { score: Math.round(S.finalScore), rating: rating,
+                             won: el.won, rule: rule });
+    buildShare(medal, rating, el);
+    show("end");
+    drawStory();
+    window.scrollTo({ top:0, behavior:"smooth" });
+  }
+
+  // ---------- Wiring ----------
+  $("start").addEventListener("click", function(){
+    newGame((Date.now() ^ (Math.random()*1e9)) >>> 0);
+    $("hud").classList.remove("hide");
+    $("dots").classList.remove("hide");
+    track("term_start", {});
+    showForecast();
+  });
+  $("toBudget").addEventListener("click", function(){
+    LEVERS.forEach(function(L){ pending[L.k] = 0; });
+    sideNow = "tax";
+    $("tabTax").classList.add("on"); $("tabSpend").classList.remove("on");
+    show("budget");
+    paintBudget();
+  });
+  $("tabTax").addEventListener("click", function(){
+    sideNow = "tax"; this.classList.add("on"); $("tabSpend").classList.remove("on"); paintLevers(); recompute();
+  });
+  $("tabSpend").addEventListener("click", function(){
+    sideNow = "spend"; this.classList.add("on"); $("tabTax").classList.remove("on"); paintLevers(); recompute();
+  });
+  $("spark").addEventListener("click", function(){
+    chartNow = (chartNow + 1) % CHARTS.length;
+    $("chName").textContent = CHARTS[chartNow].name;
+    $("chSwatch").style.background = CHARTS[chartNow].colour;
+    drawSpark();
+  });
+  $("deliver").addEventListener("click", function(){
+    var r = budget({ tax:pending.tax, vat:pending.vat, corp:pending.corp,
+                     dts:pending.dts, welf:pending.welf, cap:pending.cap });
+    showYear(r);
+  });
+  $("nextYear").addEventListener("click", function(){
+    if (S.year >= YEARS) finish(); else showForecast();
+  });
+  $("again").addEventListener("click", function(){ location.reload(); });
+  $("restart").addEventListener("click", function(){
+    if (this.classList.contains("confirm")) location.reload();
+    else { this.classList.add("confirm"); this.textContent = "?";
+           var b = this; setTimeout(function(){ b.classList.remove("confirm"); b.textContent = "↻"; }, 2500); }
+  });
+  $("share").addEventListener("click", function(){
+    if (navigator.share) { navigator.share({ text: shareText }).catch(function(){}); return; }
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(shareText).then(function(){
+        $("share").textContent = "COPIED";
+        setTimeout(function(){ $("share").textContent = "SHARE RESULT"; }, 1600);
+      }).catch(showFallback);
+    } else showFallback();
+  });
+  function showFallback(){
+    var t = $("shareFallback");
+    t.classList.remove("hide"); t.value = shareText; t.select();
+  }
+  window.addEventListener("resize", function(){
+    if (!$("budget").classList.contains("hide")) drawSpark();
+    if (!$("end").classList.contains("hide")) drawStory();
+  });
+
+  if (TIP.url){ $("tip").href = TIP.url; $("tip").classList.remove("hide"); }
+  initGA();
+  initAds();
+})();
+</script>
+</body>
+</html>
