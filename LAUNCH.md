@@ -164,6 +164,15 @@ and UK rates for a game like this run about £1–3 per thousand views.
 
 ## 3a. If AdSense rejects
 
+**It did — 20 August 2026, "low value content", exactly the outcome step 1
+below anticipates.** The response, shipped the same day: the 2022 (Ukraine)
+scenario with its full article, a History hub page, and a declutter pass so
+the site reads as more than a widget with text around it. **Do not press
+Request Review yet.** Wait roughly two weeks so Google recrawls the new pages
+(check they appear in Search Console first), then tick "I confirm I have fixed
+the issues" and request the review. If it rejects a second time, the strategy
+guide is the next piece of writing, per step 1.
+
 **Read this first: at current traffic there is no alternative to fall back on.**
 
 Almost every other ad network sets a traffic floor, and they are high. Figures
@@ -181,10 +190,9 @@ So, in order:
 
 1. **Fix and reapply.** No limit on attempts. The usual reason given is "low
    value content": add real writing, wait a couple of weeks, resubmit. The FAQ,
-   how-it-works and the three scenario articles exist for exactly this. The next
-   pieces of writing, if more are needed, are a strategy guide and a 2022
-   (Ukraine) scenario — the machinery takes one entry in `SCENARIOS` plus an
-   article.
+   how-it-works and the three scenario articles exist for exactly this. The 2022
+   (Ukraine) scenario and its article shipped with the first resubmission; the
+   next piece, if more are needed, is a strategy guide.
 2. **Build traffic and reapply again.** Section 6. This is the real answer: it
    fixes the rejection reason and unlocks every other network at the same time.
 3. **A direct sponsor.** The one option with no threshold. One "supported by"

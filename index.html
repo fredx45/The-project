@@ -93,7 +93,7 @@
 
   /* ---- Event card ---- */
   .event{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
-    padding:12px;display:flex;gap:11px;align-items:center;min-height:74px}
+    padding:12px;display:flex;flex-wrap:wrap;gap:11px;align-items:center;min-height:74px}
   .event .em{font-size:28px;line-height:1;flex:0 0 auto}
   .event .h{display:block;font-weight:800;font-size:14px;margin-bottom:3px}
   .event .p{display:block;font-size:12px;color:var(--muted);line-height:1.35}
@@ -110,8 +110,8 @@
   .tile.flash-good{animation:goodflash .7s ease-out}
 
   /* ---- Committee ---- */
-  .vote{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);
-    background:var(--raised);border-radius:12px;padding:8px 10px}
+  .vote{flex:1 0 100%;display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);
+    border-top:1px solid var(--line);padding-top:9px}
   .vote .tally{font-weight:900;font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink);
     background:var(--line);border-radius:7px;padding:3px 8px;flex:0 0 auto}
   .vote.won .tally{background:rgba(61,220,151,.22);color:var(--good)}
@@ -182,8 +182,10 @@
   .qe .v{color:var(--good)}
   /* Locked, not hidden: you should always know the second lever is there, and
      what has to happen before you can reach it. */
-  .qe.locked{opacity:.5}
-  .qe.locked .v{color:var(--muted)}
+  .qe.locked{opacity:.55}
+  .qe.locked .row,.qe.locked .hint{display:none}
+  .qe.locked .rateline{margin-bottom:0}
+  .qe.locked .v{color:var(--muted);font-size:12px;font-weight:700;letter-spacing:0}
   .qe input[type=range]:disabled,.qe .step:disabled{cursor:default}
 
   .app.quake{animation:quake .45s cubic-bezier(.36,.07,.19,.97)}
@@ -214,12 +216,8 @@
   .career{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px;
     margin-bottom:12px}
   .cstats{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:1.1px;
-    color:var(--muted);margin-bottom:9px}
+    color:var(--muted)}
   .cstats b{color:var(--ink)}
-  .mrow{display:flex;flex-wrap:wrap;gap:6px}
-  .mchip{width:34px;height:34px;border-radius:11px;background:var(--raised);border:1px solid var(--line);
-    display:grid;place-items:center;font-size:17px;filter:grayscale(1);opacity:.3}
-  .mchip.got{filter:none;opacity:1;border-color:rgba(61,220,151,.5);background:rgba(61,220,151,.12)}
   .diag{background:var(--raised);border-left:3px solid var(--infl);border-radius:0 12px 12px 0;
     padding:11px 13px;margin-bottom:10px}
   .diag b{display:block;font-size:14px;margin-bottom:3px}
@@ -263,7 +261,14 @@
   #intro h1{margin:0;font-size:32px;line-height:1.02;font-weight:900;letter-spacing:-1.4px;text-wrap:balance}
   #intro h1 span{color:var(--cta)}
   .standfirst{margin:10px 0 0;font-size:13.5px;line-height:1.5;color:var(--muted);max-width:34em}
-  .guide{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:8px}
+  .ghead{display:flex;align-items:center;width:100%;background:none;border:0;color:var(--muted);
+    font:inherit;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.1px;
+    padding:2px 2px 8px;cursor:pointer}
+  .ghead .chev{margin-left:auto;transition:transform .2s}
+  #howto.collapsed .chev{transform:rotate(-90deg)}
+  #howto.collapsed .guide{display:none}
+  #howto{margin-bottom:12px}
+  .guide{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
   .guide li{display:flex;gap:11px;align-items:flex-start;background:var(--panel);
     border:1px solid var(--line);border-radius:14px;padding:11px 12px}
   .guide .n{flex:0 0 auto;width:22px;height:22px;border-radius:8px;background:var(--raised);
@@ -371,7 +376,6 @@
 
     <div class="career hide" id="career">
       <div class="cstats" id="cstats"></div>
-      <div class="mrow" id="mrow"></div>
     </div>
 
     <div class="modes" id="modes" role="tablist">
@@ -383,24 +387,23 @@
     <!-- Scenario list, shown when the Historical tab is active -->
     <div class="scens hide" id="scens"></div>
 
-    <ol class="guide">
-      <li><span class="n">1</span><span><b>Set Bank Rate each quarter</b>
-        Anywhere from 0% to 15%. Twenty quarters, then they judge your record.</span></li>
-      <li><span class="n">2</span><span><b>Hit both targets</b>
-        Inflation 1–3% and unemployment 3–5%. Both inside, both at once, scores +2 —
-        and a run of good quarters pays more each time.</span></li>
-      <li><span class="n">3</span><span><b>Everything arrives late</b>
-        A rate change bites the following quarter. Hikes cool prices and cost jobs;
-        cuts do the reverse. Act early or don't bother.</span></li>
-      <li><span class="n">4</span><span><b>Shocks will find you</b>
+    <div id="howto">
+      <button class="ghead" id="ghead" aria-expanded="true" aria-controls="ghowto">How to play<span class="chev">▾</span></button>
+      <ol class="guide" id="ghowto">
+      <li><span class="n">1</span><span><b>Set Bank Rate, hit both targets</b>
+        One decision a quarter, 0–15%, for twenty quarters. Keep inflation 1–3% and
+        unemployment 3–5% — both at once — and a run of good quarters pays more each time.</span></li>
+      <li><span class="n">2</span><span><b>Everything arrives late</b>
+        A rate change bites the following quarter. Hikes cool prices and cost jobs; cuts do
+        the reverse. The Committee advises every meeting — the decision is always yours.</span></li>
+      <li><span class="n">3</span><span><b>Shocks will find you</b>
         Energy crises hit without warning, and a bad one can put inflation into
         double digits for years.</span></li>
-      <li><span class="n">5</span><span><b>The Committee only advises</b>
-        Eight members tell you what they'd have done. The decision is always yours.</span></li>
-      <li><span class="n">6</span><span><b>Below 1%, the rate runs out of room</b>
+      <li><span class="n">4</span><span><b>Below 1%, the rate runs out of room</b>
         Asset purchases unlock instead: quick to start, slow to stop. The 2008 scenario
         is where you will need them.</span></li>
-    </ol>
+      </ol>
+    </div>
 
     <!-- Sandbox setup, shown in place of the guide when ?sandbox is set -->
     <div class="sbox hide" id="sbox">
@@ -456,7 +459,7 @@
           <span class="scar hide" id="scarBox">Lasting damage <b id="scarVal">0.0</b>pp</span></div>
         <div class="big"><span id="gVal">+1.5</span><em>% a year</em></div>
         <canvas class="spark" id="sparkG"></canvas>
-        <div class="tgt">Not scored — but it is what the other two are made of</div>
+        <div class="tgt">Not scored — but it drives the other two</div>
       </div>
     </div>
 
@@ -464,11 +467,10 @@
       <span class="em" id="evEmoji">🏦</span>
       <span><span class="h" id="evTitle">Your first meeting</span>
       <span class="p" id="evText">Inflation is 2.6% and drifting. Set Bank Rate — the Committee advises, you decide.</span></span>
-    </div>
-
-    <div class="vote" id="vote" aria-live="polite" style="margin-bottom:10px">
-      <span class="tally" id="voteTally">MPC</span>
-      <span id="voteText">Eight other members advise. The decision is yours.</span>
+      <div class="vote" id="vote" aria-live="polite">
+        <span class="tally" id="voteTally">MPC</span>
+        <span id="voteText">Eight other members advise. The decision is yours.</span>
+      </div>
     </div>
 
     <!-- ===== AD SLOT (banner) =====
@@ -540,9 +542,9 @@
 
   <footer>An independent game. Not affiliated with, endorsed by, or connected to the
     Bank of England. A simplified model, for entertainment — not economic advice.<br>
-    <a href="how-it-works.html">How the model works</a> · <a href="faq.html">Questions</a> · <a href="scenario-1974.html">1974</a> · <a href="scenario-1992.html">1992</a> · <a href="scenario-2008.html">2008</a> ·
-    <a href="about.html">About</a> · <a href="privacy.html">Privacy</a> ·
-    <a href="https://buymeacoffee.com/holdorhike" target="_blank" rel="noopener">Buy me a coffee</a></footer>
+    <a href="how-it-works.html">How the model works</a> · <a href="faq.html">Questions</a> ·
+    <a href="history.html">History</a> · <a href="about.html">About</a> ·
+    <a href="privacy.html">Privacy</a></footer>
 </div>
 
 <script>
@@ -788,10 +790,79 @@
               line: "Bank Rate went from 5% to 0.5% in six months and stayed there for seven years. "
                   + "Inflation fell to 1.1% by September 2009, then climbed back to 5.2% in 2011 on "
                   + "energy and VAT. Unemployment peaked at 8.4% and was still 7.8% in 2013." }
+    },
+    "2022": {
+      key: "2022",
+      name: "2022 · The energy shock",
+      heading: "2022<br><span>The energy shock</span>",
+      blurb: "Inflation 5.5% · Unemployment 3.9% · Bank Rate 0.25%",
+      standfirst: "You are Governor in January 2022. Inflation is 5.5% and the Bank has just "
+        + "begun raising rates from the pandemic floor — and Russia is massing troops on the "
+        + "Ukrainian border. The balance sheet still holds the asset purchases that fought the "
+        + "last two crises. Every lever you own is about to be pulled in both directions.",
+      startYear: 2022, startQ: 1,
+      start: { rate:0.25, inflation:5.5, unemployment:3.9 },
+      // Expectations were already slipping: households' year-ahead expectations
+      // ran above 4% before the invasion.
+      // Holding the pandemic floor while inflation ran at 5.5% was already
+      // stimulative, and the anchor climbs fast from here.
+      exp: 3.6, global: 1.0,
+      // The whole rich world hiked together — the Fed went from 0.25% to over
+      // 5% in eighteen months — so neutral climbs hard through the term.
+      globalBias: 0.10,
+      globalBand: [0.5, 4.75], neutralBand: [0.25, 4.25],
+      natural: 4.3,
+      penaltyTail: 4,
+      // The signature dilemma: the term opens with the pandemic-era balance
+      // sheet still loaded, so the effective stance is looser than the headline
+      // rate says, and unwinding it is capped while inflation runs away.
+      qe: 300,
+      // The invasion lands in the first quarter, as it did; a second energy
+      // spike into the winter; sticky food and core inflation through 2023.
+      script: { 1:3, 2:2, 4:2, 10:1 },
+      // A fiscal event, not a monetary one: the game cannot model gilt-market
+      // dysfunction, but the mini-Budget's inflationary push and the hit to
+      // credibility arrive as a shock with a long tail.
+      events: { // The opening crisis is scripted as tier 3; this names it.
+                1: { card: ["⚔️","RUSSIA INVADES UKRAINE",
+                            "European wholesale gas prices go vertical. Britain buys little "
+                            + "Russian gas — and it makes no difference, because gas is priced "
+                            + "on a continental market that has just lost its biggest supplier."] },
+                3: { shock: 0.55,
+                     card: ["📉","A FISCAL EVENT",
+                            "Unfunded tax cuts send gilt yields vertical and sterling to an "
+                            + "all-time low against the dollar. The market is repricing "
+                            + "everything British — including how much your word is worth."] },
+                // The unwind: wholesale energy prices fell back through 2023
+                // as sharply as they rose, and the base effects that put
+                // inflation up took it down again. Disinflation you did not
+                // earn — as real as the shock that preceded it.
+                6: { shock: -1.55, carry: -0.55,
+                     card: ["🛢️","ENERGY PRICES FALL BACK",
+                            "Wholesale gas is down by two-thirds from the peak. The same "
+                            + "arithmetic that drove inflation up now starts pulling it down "
+                            + "— whatever you do with the rate."] },
+                8: { shock: -1.25, carry: -0.45,
+                     card: ["🛒","BASE EFFECTS BITE",
+                            "Last year's price surge drops out of the annual comparison. "
+                            + "Headline inflation falls fast; the food and services beneath "
+                            + "it are stickier."] } },
+      // Measured: doing nothing spirals to 24% and scores about −330; steady
+      // half-point hikes land −196 and hard tightening to 6% lands −181, losing
+      // on jobs what it wins on prices. Hiking briskly to restrictive, holding,
+      // and unwinding the balance sheet scores −134; the path the MPC actually
+      // ran scores −124 and is the best of anything tried. Par rewards
+      // decisiveness without the overshoot.
+      par: -170,
+      real: { peak: 11.1, endInfl: 2.6, endUnemp: 4.9,
+              line: "Inflation peaked at 11.1% in October 2022, the highest in forty-one years. "
+                  + "Bank Rate rose from 0.25% to 5.25% by August 2023 and held there a full year. "
+                  + "By late 2026 inflation was 2.6% and unemployment 4.9% — the exact economy the "
+                  + "modern game hands you." }
     }
   };
   var SCEN = null, SANDBOX = false, NO_SHOCKS = false;
-  var SCEN_ORDER = ["1974", "1992", "2008"];
+  var SCEN_ORDER = ["1974", "1992", "2008", "2022"];
 
   // Every era-specific tunable in one place, so switching mode can restore the
   // modern game exactly rather than leaving a previous scenario's numbers behind.
@@ -1055,8 +1126,11 @@
       // hitting it. Moved only by the letter to the Chancellor. At 1.0 it scales
       // nothing, which is where a player who never breaches stays.
       cred: LEGACY ? LEGACY.cred : 1.0,
-      // Asset purchases, in £bn, lagged a quarter like the rate.
-      qe: LEGACY ? LEGACY.qe : 0, qeLagged: LEGACY ? LEGACY.qe : 0, qePeak: 0,
+      // Asset purchases, in £bn, lagged a quarter like the rate. 2022 is the
+      // one scenario that opens with the last crisis still on the books.
+      qe: LEGACY ? LEGACY.qe : (SCEN && SCEN.qe || 0),
+      qeLagged: LEGACY ? LEGACY.qe : (SCEN && SCEN.qe || 0),
+      qePeak: SCEN && SCEN.qe || 0,
       pledgeUntil: 0, pledgeFailed: false, letterChoice: null,
       score:0, bandPoints:0, missPoints:0, fightPoints:0, streak:0, bestStreak:0,
       crisisFired:false, crisisPenalty:0,
@@ -1160,7 +1234,8 @@
     else if (tier === 4){ ev = SLUMP[(Math.random()*SLUMP.length)|0]; shock = -0.70; dU = 0.40; S.majorHits++; }
     else ev = CALM[(Math.random()*CALM.length)|0];
     if (tier) S.shocksHit++;
-    if (regime && regime.card) ev = regime.card;   // the regime change is the news
+    if (regime && regime.card){ ev = regime.card;  // the regime change is the news
+      if (tier === 3) S.crisisName = ev[1]; }
     if (regime && regime.shock) shock += regime.shock;
 
     var carry = S.shockCarry;
@@ -1583,6 +1658,14 @@
     setTimeout(function(){ el.remove(); }, 1000);
   }
 
+  // The coaching list earns its space exactly once. Returning players get a
+  // one-line header they can reopen; first-timers see it expanded.
+  $("ghead").addEventListener("click", function(){
+    var c = $("howto").classList.toggle("collapsed");
+    $("ghead").setAttribute("aria-expanded", String(!c));
+  });
+  if (career.games){ $("howto").classList.add("collapsed"); $("ghead").setAttribute("aria-expanded","false"); }
+
   // ---------- Career strip (intro) ----------
   function renderCareer(){
     if (!career.games){ $("career").classList.add("hide"); return; }
@@ -1591,11 +1674,6 @@
       + (career.bestScore === null ? "—" : career.bestScore) + "</b> · Medals <b>"
       + career.medals.length + "/" + MEDALS.length + "</b>"
       + (career.bestScore === null ? "" : ' · <b style="color:var(--good)">beat it</b>');
-    $("mrow").innerHTML = MEDALS.map(function(m){
-      var got = career.medals.indexOf(m.id) > -1;
-      return '<span class="mchip' + (got ? " got" : "") + '" title="' + m.name + " — " + m.hint
-           + '" aria-label="' + m.name + (got ? " (earned)" : " (locked)") + '">' + m.emoji + '</span>';
-    }).join("");
   }
 
   // ---------- Diagnosis ----------
@@ -2024,9 +2102,9 @@
     $("qeUp").disabled = !on;
     $("qeDown").disabled = !on;
     if (!on){
-      $("qeVal").textContent = "£" + Math.round(S.qe) + "bn";
-      $("qeHint").textContent = "Unlocks at Bank Rate 1% — when cutting has run out of "
-        + "room, this is the lever that is left.";
+      // Collapsed to one slim line: you should still know the second lever
+      // exists, and what has to happen before you can reach it.
+      $("qeVal").textContent = "unlocks at Bank Rate 1%";
       return;
     }
     // You cannot sell what you do not hold, and unwinding is capped.
@@ -2195,7 +2273,7 @@
                    : SANDBOX ? "Sandbox — Hold or Hike"
                    : STATIC_TITLE;
 
-    $("intro").querySelector(".guide").classList.toggle("hide", mode !== "modern");
+    $("howto").classList.toggle("hide", mode !== "modern");
     $("scens").classList.toggle("hide", mode !== "hist");
     $("sbox").classList.toggle("hide", mode !== "sandbox");
 
